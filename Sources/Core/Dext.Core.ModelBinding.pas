@@ -16,6 +16,9 @@ uses
 type
   EBindingException = class(Exception);
 
+  /// <summary>
+  ///   Defines the source from where a model or parameter should be bound.
+  /// </summary>
   TBindingSource = (
     bsBody,     // JSON body
     bsQuery,    // Query string
@@ -25,7 +28,9 @@ type
     bsForm      // Form data (future)
   );
 
-  // ✅ ATRIBUTOS DE BINDING
+  /// <summary>
+  ///   Base class for binding attributes.
+  /// </summary>
   BindingAttribute = class abstract(TCustomAttribute)
   private
     FSource: TBindingSource;
@@ -34,11 +39,17 @@ type
     property Source: TBindingSource read FSource;
   end;
 
+  /// <summary>
+  ///   Specifies that a parameter or property should be bound using the request body.
+  /// </summary>
   FromBodyAttribute = class(BindingAttribute)
   public
     constructor Create; overload;
   end;
 
+  /// <summary>
+  ///   Specifies that a parameter or property should be bound using the request query string.
+  /// </summary>
   FromQueryAttribute = class(BindingAttribute)
   private
     FName: string;
@@ -48,6 +59,9 @@ type
     property Name: string read FName;
   end;
 
+  /// <summary>
+  ///   Specifies that a parameter or property should be bound using route data.
+  /// </summary>
   FromRouteAttribute = class(BindingAttribute)
   private
     FName: string;
@@ -57,6 +71,9 @@ type
     property Name: string read FName;
   end;
 
+  /// <summary>
+  ///   Specifies that a parameter or property should be bound using the request headers.
+  /// </summary>
   FromHeaderAttribute = class(BindingAttribute)
   private
     FName: string;
@@ -66,20 +83,52 @@ type
     property Name: string read FName;
   end;
 
+  /// <summary>
+  ///   Specifies that a parameter should be bound using the dependency injection container.
+  /// </summary>
   FromServicesAttribute = class(BindingAttribute)
   public
     constructor Create; overload;
   end;
 
+  /// <summary>
+  ///   Defines the contract for model binding.
+  /// </summary>
   IModelBinder = interface
     ['{6CDDAA4C-EB6B-42F0-A138-614FFBA931A5}']
+    /// <summary>
+    ///   Binds a model from the request body.
+    /// </summary>
     function BindBody(AType: PTypeInfo; Context: IHttpContext): TValue;
+    
+    /// <summary>
+    ///   Binds a model from the query string.
+    /// </summary>
     function BindQuery(AType: PTypeInfo; Context: IHttpContext): TValue;
+    
+    /// <summary>
+    ///   Binds a model from route data.
+    /// </summary>
     function BindRoute(AType: PTypeInfo; Context: IHttpContext): TValue;
+    
+    /// <summary>
+    ///   Binds a model from request headers.
+    /// </summary>
     function BindHeader(AType: PTypeInfo; Context: IHttpContext): TValue;
+    
+    /// <summary>
+    ///   Binds a model from the service provider.
+    /// </summary>
     function BindServices(AType: PTypeInfo; Context: IHttpContext): TValue;
 
+    /// <summary>
+    ///   Binds all parameters of a method.
+    /// </summary>
     function BindMethodParameters(AMethod: TRttiMethod; AContext: IHttpContext): TArray<TValue>;
+    
+    /// <summary>
+    ///   Binds a single parameter.
+    /// </summary>
     function BindParameter(AParam: TRttiParameter; AContext: IHttpContext): TValue;
   end;
 

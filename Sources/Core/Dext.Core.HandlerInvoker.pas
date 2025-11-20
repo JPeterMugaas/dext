@@ -25,15 +25,29 @@ type
     constructor Create(AContext: IHttpContext; AModelBinder: IModelBinder);
 
     // Invocação estática (legado/simples)
+    /// <summary>
+    ///   Invokes a static handler (procedure(Ctx: IHttpContext)).
+    /// </summary>
     function Invoke(AHandler: TStaticHandler): Boolean; overload;
 
-    // Invocação genérica com 1 argumento
+    /// <summary>
+    ///   Invokes a generic handler with 1 argument.
+    ///   Performs automatic binding based on argument type:
+    ///   - IHttpContext: Injected directly.
+    ///   - Record: Bound from Body (POST/PUT) or Query (GET/DELETE).
+    ///   - Interface: Bound from Services (DI).
+    ///   - Primitive: Bound from Route (if available) or Query.
+    /// </summary>
     function Invoke<T>(AHandler: THandlerProc<T>): Boolean; overload;
 
-    // Invocação genérica com 2 argumentos
+    /// <summary>
+    ///   Invokes a generic handler with 2 arguments.
+    /// </summary>
     function Invoke<T1, T2>(AHandler: THandlerProc<T1, T2>): Boolean; overload;
     
-    // Invocação genérica com 3 argumentos
+    /// <summary>
+    ///   Invokes a generic handler with 3 arguments.
+    /// </summary>
     function Invoke<T1, T2, T3>(AHandler: THandlerProc<T1, T2, T3>): Boolean; overload;
   end;
 
@@ -77,9 +91,15 @@ begin
     // 1. Verify if IHttpContext
     if TypeInfo(T) = TypeInfo(IHttpContext) then
       Arg1 := TValue.From<IHttpContext>(FContext).AsType<T>
-    // 2. Records -> Body
+    // 2. Records -> Body OR Query (Smart Binding)
     else if PTypeInfo(TypeInfo(T)).Kind = tkRecord then
-      Arg1 := TModelBinderHelper.BindBody<T>(FModelBinder, FContext)
+    begin
+      // Smart Binding: GET/DELETE -> Query, POST/PUT/PATCH -> Body
+      if (FContext.Request.Method = 'GET') or (FContext.Request.Method = 'DELETE') then
+        Arg1 := TModelBinderHelper.BindQuery<T>(FModelBinder, FContext)
+      else
+        Arg1 := TModelBinderHelper.BindBody<T>(FModelBinder, FContext);
+    end
     // 3. Interfaces -> Services
     else if PTypeInfo(TypeInfo(T)).Kind = tkInterface then
       Arg1 := FModelBinder.BindServices(TypeInfo(T), FContext).AsType<T>
@@ -117,7 +137,12 @@ begin
     if TypeInfo(T1) = TypeInfo(IHttpContext) then
       Arg1 := TValue.From<IHttpContext>(FContext).AsType<T1>
     else if PTypeInfo(TypeInfo(T1)).Kind = tkRecord then
-      Arg1 := TModelBinderHelper.BindBody<T1>(FModelBinder, FContext)
+    begin
+      if (FContext.Request.Method = 'GET') or (FContext.Request.Method = 'DELETE') then
+        Arg1 := TModelBinderHelper.BindQuery<T1>(FModelBinder, FContext)
+      else
+        Arg1 := TModelBinderHelper.BindBody<T1>(FModelBinder, FContext);
+    end
     else if PTypeInfo(TypeInfo(T1)).Kind = tkInterface then
       Arg1 := FModelBinder.BindServices(TypeInfo(T1), FContext).AsType<T1>
     else
@@ -132,7 +157,12 @@ begin
     if TypeInfo(T2) = TypeInfo(IHttpContext) then
       Arg2 := TValue.From<IHttpContext>(FContext).AsType<T2>
     else if PTypeInfo(TypeInfo(T2)).Kind = tkRecord then
-      Arg2 := TModelBinderHelper.BindBody<T2>(FModelBinder, FContext)
+    begin
+      if (FContext.Request.Method = 'GET') or (FContext.Request.Method = 'DELETE') then
+        Arg2 := TModelBinderHelper.BindQuery<T2>(FModelBinder, FContext)
+      else
+        Arg2 := TModelBinderHelper.BindBody<T2>(FModelBinder, FContext);
+    end
     else if PTypeInfo(TypeInfo(T2)).Kind = tkInterface then
       Arg2 := FModelBinder.BindServices(TypeInfo(T2), FContext).AsType<T2>
     else
@@ -169,7 +199,12 @@ begin
     if TypeInfo(T1) = TypeInfo(IHttpContext) then
       Arg1 := TValue.From<IHttpContext>(FContext).AsType<T1>
     else if PTypeInfo(TypeInfo(T1)).Kind = tkRecord then
-      Arg1 := TModelBinderHelper.BindBody<T1>(FModelBinder, FContext)
+    begin
+      if (FContext.Request.Method = 'GET') or (FContext.Request.Method = 'DELETE') then
+        Arg1 := TModelBinderHelper.BindQuery<T1>(FModelBinder, FContext)
+      else
+        Arg1 := TModelBinderHelper.BindBody<T1>(FModelBinder, FContext);
+    end
     else if PTypeInfo(TypeInfo(T1)).Kind = tkInterface then
       Arg1 := FModelBinder.BindServices(TypeInfo(T1), FContext).AsType<T1>
     else
@@ -184,7 +219,12 @@ begin
     if TypeInfo(T2) = TypeInfo(IHttpContext) then
       Arg2 := TValue.From<IHttpContext>(FContext).AsType<T2>
     else if PTypeInfo(TypeInfo(T2)).Kind = tkRecord then
-      Arg2 := TModelBinderHelper.BindBody<T2>(FModelBinder, FContext)
+    begin
+      if (FContext.Request.Method = 'GET') or (FContext.Request.Method = 'DELETE') then
+        Arg2 := TModelBinderHelper.BindQuery<T2>(FModelBinder, FContext)
+      else
+        Arg2 := TModelBinderHelper.BindBody<T2>(FModelBinder, FContext);
+    end
     else if PTypeInfo(TypeInfo(T2)).Kind = tkInterface then
       Arg2 := FModelBinder.BindServices(TypeInfo(T2), FContext).AsType<T2>
     else
@@ -199,7 +239,12 @@ begin
     if TypeInfo(T3) = TypeInfo(IHttpContext) then
       Arg3 := TValue.From<IHttpContext>(FContext).AsType<T3>
     else if PTypeInfo(TypeInfo(T3)).Kind = tkRecord then
-      Arg3 := TModelBinderHelper.BindBody<T3>(FModelBinder, FContext)
+    begin
+      if (FContext.Request.Method = 'GET') or (FContext.Request.Method = 'DELETE') then
+        Arg3 := TModelBinderHelper.BindQuery<T3>(FModelBinder, FContext)
+      else
+        Arg3 := TModelBinderHelper.BindBody<T3>(FModelBinder, FContext);
+    end
     else if PTypeInfo(TypeInfo(T3)).Kind = tkInterface then
       Arg3 := FModelBinder.BindServices(TypeInfo(T3), FContext).AsType<T3>
     else

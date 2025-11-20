@@ -11,6 +11,9 @@ uses
 type
   TApplicationBuilderExtensions = class
   public
+    /// <summary>
+    ///   Maps a POST request to a handler with 1 argument.
+    /// </summary>
     class function MapPost<T>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T>): IApplicationBuilder; overload;
       
@@ -20,6 +23,9 @@ type
     class function MapPost<T1, T2, T3>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T1, T2, T3>): IApplicationBuilder; overload;
 
+    /// <summary>
+    ///   Maps a GET request to a handler with 1 argument.
+    /// </summary>
     class function MapGet<T>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T>): IApplicationBuilder; overload;
       
@@ -29,6 +35,9 @@ type
     class function MapGet<T1, T2, T3>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T1, T2, T3>): IApplicationBuilder; overload;
 
+    /// <summary>
+    ///   Maps a PUT request to a handler with 1 argument.
+    /// </summary>
     class function MapPut<T>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T>): IApplicationBuilder; overload;
       
@@ -38,6 +47,9 @@ type
     class function MapPut<T1, T2, T3>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T1, T2, T3>): IApplicationBuilder; overload;
 
+    /// <summary>
+    ///   Maps a DELETE request to a handler with 1 argument.
+    /// </summary>
     class function MapDelete<T>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T>): IApplicationBuilder; overload;
       
