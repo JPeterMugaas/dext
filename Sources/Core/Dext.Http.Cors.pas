@@ -9,59 +9,158 @@ uses
   Dext.Http.Interfaces;
 
 type
+  /// <summary>
+  ///   CORS (Cross-Origin Resource Sharing) configuration options.
+  /// </summary>
   TCorsOptions = record
   public
+    /// <summary>
+    ///   List of allowed origins. Use '*' for any origin.
+    /// </summary>
     AllowedOrigins: TArray<string>;
+    
+    /// <summary>
+    ///   List of allowed HTTP methods (GET, POST, PUT, DELETE, etc.).
+    /// </summary>
     AllowedMethods: TArray<string>;
+    
+    /// <summary>
+    ///   List of allowed request headers.
+    /// </summary>
     AllowedHeaders: TArray<string>;
+    
+    /// <summary>
+    ///   List of headers that can be exposed to the browser.
+    /// </summary>
     ExposedHeaders: TArray<string>;
+    
+    /// <summary>
+    ///   Whether to allow credentials (cookies, authorization headers).
+    /// </summary>
     AllowCredentials: Boolean;
+    
+    /// <summary>
+    ///   How long (in seconds) the preflight response can be cached.
+    /// </summary>
     MaxAge: Integer;
 
+    /// <summary>
+    ///   Creates default CORS options with common settings.
+    /// </summary>
     class function Create: TCorsOptions; static;
   end;
 
+  /// <summary>
+  ///   Helper for TArray&lt;string&gt; to check if it contains a value.
+  /// </summary>
   TStringArrayHelper = record helper for TArray<string>
   public
     function Contains(const AValue: string): Boolean;
     function IsEmpty: Boolean;
   end;
 
+  /// <summary>
+  ///   Middleware that handles CORS (Cross-Origin Resource Sharing).
+  /// </summary>
   TCorsMiddleware = class(TMiddleware)
   private
     FOptions: TCorsOptions;
+    FEnableDebugLog: Boolean;
     procedure AddCorsHeaders(AContext: IHttpContext);
     function IsOriginAllowed(const AOrigin: string): Boolean;
+    procedure DebugLog(const AMessage: string);
   public
     constructor Create; overload;
     constructor Create(const AOptions: TCorsOptions); overload;
+    constructor Create(const AOptions: TCorsOptions; AEnableDebugLog: Boolean); overload;
     procedure Invoke(AContext: IHttpContext; ANext: TRequestDelegate); override;
   end;
 
+  /// <summary>
+  ///   Fluent builder for creating CORS options.
+  /// </summary>
   TCorsBuilder = class
   private
     FOptions: TCorsOptions;
   public
+    constructor Create;
+    
+    /// <summary>
+    ///   Specifies the allowed origins.
+    /// </summary>
     function WithOrigins(const AOrigins: array of string): TCorsBuilder;
+    
+    /// <summary>
+    ///   Allows any origin (*). Cannot be used with AllowCredentials.
+    /// </summary>
     function AllowAnyOrigin: TCorsBuilder;
+    
+    /// <summary>
+    ///   Specifies the allowed HTTP methods.
+    /// </summary>
     function WithMethods(const AMethods: array of string): TCorsBuilder;
+    
+    /// <summary>
+    ///   Allows any HTTP method.
+    /// </summary>
     function AllowAnyMethod: TCorsBuilder;
+    
+    /// <summary>
+    ///   Specifies the allowed request headers.
+    /// </summary>
     function WithHeaders(const AHeaders: array of string): TCorsBuilder;
+    
+    /// <summary>
+    ///   Allows any request header.
+    /// </summary>
     function AllowAnyHeader: TCorsBuilder;
+    
+    /// <summary>
+    ///   Specifies headers that can be exposed to the browser.
+    /// </summary>
     function WithExposedHeaders(const AHeaders: array of string): TCorsBuilder;
+    
+    /// <summary>
+    ///   Allows credentials (cookies, authorization headers).
+    ///   Cannot be used with AllowAnyOrigin.
+    /// </summary>
     function AllowCredentials: TCorsBuilder;
+    
+    /// <summary>
+    ///   Sets how long (in seconds) the preflight response can be cached.
+    /// </summary>
     function WithMaxAge(ASeconds: Integer): TCorsBuilder;
 
+    /// <summary>
+    ///   Builds and returns the CORS options.
+    /// </summary>
     function Build: TCorsOptions;
   end;
 
+  /// <summary>
+  ///   Extension methods for adding CORS to the application pipeline.
+  /// </summary>
   TApplicationBuilderCorsExtensions = class
   public
+    /// <summary>
+    ///   Adds CORS middleware with default settings.
+    /// </summary>
     class function UseCors(const ABuilder: IApplicationBuilder): IApplicationBuilder; overload; static;
+    
+    /// <summary>
+    ///   Adds CORS middleware with custom options.
+    /// </summary>
     class function UseCors(const ABuilder: IApplicationBuilder; const AOptions: TCorsOptions): IApplicationBuilder; overload; static;
+    
+    /// <summary>
+    ///   Adds CORS middleware configured with a builder.
+    /// </summary>
     class function UseCors(const ABuilder: IApplicationBuilder; AConfigurator: TProc<TCorsBuilder>): IApplicationBuilder; overload; static;
   end;
 
+  /// <summary>
+  ///   Helper for implicit conversion of TCorsOptions to TValue.
+  /// </summary>
   TCorsOptionsHelper = record helper for TCorsOptions
   public
     class operator Implicit(const AValue: TCorsOptions): TValue;
@@ -107,13 +206,28 @@ constructor TCorsMiddleware.Create;
 begin
   inherited Create;
   FOptions := TCorsOptions.Create;
+  FEnableDebugLog := False;
 end;
 
-// ✅ NOVO: Construtor com parâmetros
+// ✅ Construtor com parâmetros
 constructor TCorsMiddleware.Create(const AOptions: TCorsOptions);
 begin
   inherited Create;
   FOptions := AOptions;
+  FEnableDebugLog := False;
+end;
+
+constructor TCorsMiddleware.Create(const AOptions: TCorsOptions; AEnableDebugLog: Boolean);
+begin
+  inherited Create;
+  FOptions := AOptions;
+  FEnableDebugLog := AEnableDebugLog;
+end;
+
+procedure TCorsMiddleware.DebugLog(const AMessage: string);
+begin
+  if FEnableDebugLog then
+    WriteLn(AMessage);
 end;
 
 procedure TCorsMiddleware.Invoke(AContext: IHttpContext; ANext: TRequestDelegate);
@@ -121,36 +235,34 @@ var
   Headers: TArray<string>;
   I: Integer;
 begin
-  Writeln('🚀 CORS MIDDLEWARE STARTED');
-  Writeln('📨 Request: ', AContext.Request.Method, ' ', AContext.Request.Path);
+  DebugLog('🚀 CORS MIDDLEWARE STARTED');
+  DebugLog('📨 Request: ' + AContext.Request.Method + ' ' + AContext.Request.Path);
 
   // Debug: ver todos os headers da request
-  Writeln('📋 Request Headers:');
-  Headers := AContext.Request.Headers.Keys.ToArray;
-  for I := 0 to High(Headers) do
+  if FEnableDebugLog then
   begin
-    Writeln('   ', Headers[I], ': ', AContext.Request.Headers[Headers[I]]);
+    DebugLog('📋 Request Headers:');
+    Headers := AContext.Request.Headers.Keys.ToArray;
+    for I := 0 to High(Headers) do
+      DebugLog('   ' + Headers[I] + ': ' + AContext.Request.Headers[Headers[I]]);
   end;
 
   // ✅ ADICIONAR HEADERS CORS
   AddCorsHeaders(AContext);
 
-  // Debug: ver headers que foram adicionados
-  Writeln('✅ CORS Headers added (checking response)...');
-
   // Se for preflight OPTIONS
   if AContext.Request.Method = 'OPTIONS' then
   begin
-    Writeln('🛬 CORS: Handling OPTIONS preflight');
+    DebugLog('🛬 CORS: Handling OPTIONS preflight');
     AContext.Response.StatusCode := 204; // No Content
     AContext.Response.SetContentType('text/plain');
-    Writeln('🛑 CORS: Stopping pipeline for OPTIONS');
+    DebugLog('🛑 CORS: Stopping pipeline for OPTIONS');
     Exit;
   end;
 
-  Writeln('➡️ CORS: Continuing to next middleware');
+  DebugLog('➡️ CORS: Continuing to next middleware');
   ANext(AContext);
-  Writeln('🏁 CORS MIDDLEWARE FINISHED');
+  DebugLog('🏁 CORS MIDDLEWARE FINISHED');
 end;
 
 procedure TCorsMiddleware.AddCorsHeaders(AContext: IHttpContext);
@@ -158,84 +270,44 @@ var
   Origin: string;
   RequestOrigin: string;
 begin
-  Writeln('🎯 AddCorsHeaders called');
-
-  // ✅ Obter Origin do request
+  // Obter Origin do request
   if AContext.Request.Headers.TryGetValue('origin', RequestOrigin) then
-  begin
-    Origin := RequestOrigin;
-    Writeln('📍 Origin found: ', Origin);
-  end
+    Origin := RequestOrigin
   else
-  begin
     Origin := '';
-    Writeln('📍 No Origin header');
-  end;
 
   // Verificar se origin é permitida
   if IsOriginAllowed(Origin) then
   begin
-    Writeln('✅ Origin allowed, adding CORS headers');
-
-    // ✅ ADICIONAR HEADERS CORS
     AContext.Response.AddHeader('Access-Control-Allow-Origin', Origin);
-    Writeln('   Added: Access-Control-Allow-Origin: ', Origin);
 
     if FOptions.AllowCredentials then
-    begin
       AContext.Response.AddHeader('Access-Control-Allow-Credentials', 'true');
-      Writeln('   Added: Access-Control-Allow-Credentials: true');
-    end;
 
     if Length(FOptions.ExposedHeaders) > 0 then
-    begin
       AContext.Response.AddHeader('Access-Control-Expose-Headers',
         string.Join(', ', FOptions.ExposedHeaders));
-      Writeln('   Added: Access-Control-Expose-Headers: ',
-        string.Join(', ', FOptions.ExposedHeaders));
-    end;
   end
   else if FOptions.AllowedOrigins.Contains('*') then
   begin
-    Writeln('✅ Wildcard enabled, adding CORS headers');
     AContext.Response.AddHeader('Access-Control-Allow-Origin', '*');
-    Writeln('   Added: Access-Control-Allow-Origin: *');
-  end
-  else
-  begin
-    Writeln('❌ Origin not allowed: ', Origin);
   end;
 
   // Headers para preflight requests
   if AContext.Request.Method = 'OPTIONS' then
   begin
-    Writeln('🛬 Adding preflight headers');
-
     if Length(FOptions.AllowedMethods) > 0 then
-    begin
       AContext.Response.AddHeader('Access-Control-Allow-Methods',
         string.Join(', ', FOptions.AllowedMethods));
-      Writeln('   Added: Access-Control-Allow-Methods: ',
-        string.Join(', ', FOptions.AllowedMethods));
-    end;
 
     if Length(FOptions.AllowedHeaders) > 0 then
-    begin
       AContext.Response.AddHeader('Access-Control-Allow-Headers',
         string.Join(', ', FOptions.AllowedHeaders));
-      Writeln('   Added: Access-Control-Allow-Headers: ',
-        string.Join(', ', FOptions.AllowedHeaders));
-    end;
 
     if FOptions.MaxAge > 0 then
-    begin
       AContext.Response.AddHeader('Access-Control-Max-Age',
         IntToStr(FOptions.MaxAge));
-      Writeln('   Added: Access-Control-Max-Age: ', FOptions.MaxAge);
-    end;
   end;
-
-  Writeln('🎯 AddCorsHeaders finished');
 end;
 
 function TCorsMiddleware.IsOriginAllowed(const AOrigin: string): Boolean;
@@ -250,6 +322,12 @@ begin
 end;
 
 { TCorsBuilder }
+
+constructor TCorsBuilder.Create;
+begin
+  inherited Create;
+  FOptions := TCorsOptions.Create;
+end;
 
 function TCorsBuilder.AllowAnyHeader: TCorsBuilder;
 begin

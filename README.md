@@ -1,208 +1,381 @@
-# 🚀 Dext - Modern Web Framework for Delphi
+# Dext Framework - Modern Web API Framework for Delphi
 
-[![Delphi](https://img.shields.io/badge/Delphi-11%20Alexandria-red.svg)](https://www.embarcadero.com/products/delphi)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+**Dext** é um framework web moderno para Delphi inspirado em ASP.NET Core Minimal APIs, trazendo recursos avançados como Smart Binding, Dependency Injection, Result Helpers e Validação Automática.
 
-**Dext** é um framework web moderno e minimalista para Delphi, inspirado no ASP.NET Core, oferecendo uma experiência de desenvolvimento produtiva e type-safe para criação de APIs RESTful.
+## 🚀 Recursos Principais
 
-## ✨ Features
-
-- 🎯 **Minimal API** - Sintaxe limpa e expressiva para definição de endpoints
-- 🔗 **Smart Model Binding** - Binding automático de Body, Query, Route, Headers
-- 💉 **Dependency Injection** - Container DI nativo e integrado
-- 🛣️ **Route Parameters** - Suporte a tipos primitivos e records
-- 📦 **JSON Serialization** - Serialização/deserialização automática
-- 🔧 **Type-Safe** - Handlers tipados com inferência automática
-- ⚡ **Performance** - Otimizado para alta performance
-- 🧩 **Extensível** - Arquitetura modular e plugável
-
-## 📦 Instalação
-
-### Requisitos
-
-- Delphi 11 Alexandria ou superior
-- Windows (suporte a outras plataformas em desenvolvimento)
-
-### Quick Start
-
-1. Clone o repositório:
-```bash
-git clone https://github.com/seu-usuario/dext.git
-```
-
-2. Adicione os paths ao seu projeto:
-```
-..\Core
-..\Core\Drivers
-```
-
-3. Crie seu primeiro servidor:
+### 1. **Minimal API com Smart Binding**
+Crie endpoints de forma fluente e expressiva:
 
 ```pascal
-program HelloDext;
-
-uses
-  Dext.WebHost,
-  Dext.Http.Interfaces,
-  Dext.Core.ApplicationBuilder.Extensions;
-
-begin
-  var Host := TDextWebHost.CreateDefaultBuilder
-    .Configure(procedure(App: IApplicationBuilder)
-    begin
-      TApplicationBuilderExtensions.MapGet<IHttpContext>(
-        App, '/hello',
-        procedure(Ctx: IHttpContext)
-        begin
-          Ctx.Response.Json('{"message":"Hello, Dext!"}');
-        end
-      );
-    end)
-    .Build;
-
-  WriteLn('Server running on http://localhost:8080');
-  Host.Run;
-end.
-```
-
-## 🎯 Exemplos Rápidos
-
-### GET com Route Parameter
-
-```pascal
-// GET /api/users/123
-MapGet<Integer, IHttpContext>(App, '/api/users/{id}',
-  procedure(UserId: Integer; Ctx: IHttpContext)
+// GET com parâmetro de rota
+App.MapGetR<Integer, IResult>('/api/users/{id}',
+  function(UserId: Integer): IResult
   begin
-    Ctx.Response.Json(Format('{"userId":%d}', [UserId]));
-  end
-);
+    Result := Results.Json(Format('{"userId":%d}', [UserId]));
+  end);
+
+// POST com body binding automático
+App.MapPostR<TCreateUserRequest, IResult>('/api/users',
+  function(Request: TCreateUserRequest): IResult
+  begin
+    Result := Results.Created('/api/users/1', '{"status":"created"}');
+  end);
 ```
 
-### POST com Body Binding
+### 2. **Result Helpers**
+Retorne respostas HTTP de forma elegante:
+
+```pascal
+Results.Ok('{"message":"Success"}');           // 200 OK
+Results.Created('/api/users/1', '{}');         // 201 Created
+Results.BadRequest('{"error":"Invalid"}');     // 400 Bad Request
+Results.NotFound();                            // 404 Not Found
+Results.NoContent();                           // 204 No Content
+Results.Json('{}', 200);                       // Custom status
+```
+
+### 3. **Dependency Injection**
+Injete serviços automaticamente nos handlers:
+
+```pascal
+// Registrar serviço
+Services.AddSingleton<IUserService, TUserService>;
+
+// Usar no handler
+App.MapPost<TUser, IUserService, IHttpContext>('/api/users',
+  procedure(User: TUser; UserService: IUserService; Ctx: IHttpContext)
+  begin
+    UserService.CreateUser(User);
+    Ctx.Response.Json('{"status":"created"}');
+  end);
+```
+
+### 4. **Validação Automática**
+Valide DTOs usando atributos:
 
 ```pascal
 type
   TCreateUserRequest = record
+    [Required]
+    [StringLength(3, 50)]
     Name: string;
+    
+    [Required]
+    [EmailAddress]
     Email: string;
+    
+    [Range(18, 120)]
+    Age: Integer;
   end;
 
-// POST /api/users
-MapPost<TCreateUserRequest, IHttpContext>(App, '/api/users',
-  procedure(Request: TCreateUserRequest; Ctx: IHttpContext)
-  begin
-    Ctx.Response.StatusCode := 201;
-    Ctx.Response.Json(Format('{"name":"%s","email":"%s"}', 
-      [Request.Name, Request.Email]));
-  end
-);
+// No handler
+var
+  Validator := TValidator<TCreateUserRequest>.Create;
+  ValidationResult := Validator.Validate(Request);
+  
+if not ValidationResult.IsValid then
+  Result := Results.BadRequest(GetErrorsJson(ValidationResult));
 ```
 
-### Dependency Injection
+**Atributos disponíveis:**
+- `[Required]` - Campo obrigatório
+- `[StringLength(min, max)]` - Tamanho da string
+- `[EmailAddress]` - Validação de email
+- `[Range(min, max)]` - Faixa numérica
+
+### 5. **Middleware Funcional**
+Crie middlewares inline sem classes:
 
 ```pascal
-// Registrar serviço
-.ConfigureServices(procedure(Services: IServiceCollection)
+App.Use(
+  procedure(Context: IHttpContext; Next: TRequestDelegate)
+  begin
+    WriteLn('Request: ' + Context.Request.Path);
+    Next(Context);
+    WriteLn('Response sent');
+  end);
+```
+
+### 6. **Autenticação JWT** 🔐
+Sistema completo de autenticação com JSON Web Tokens:
+
+```pascal
+// Configurar middleware de autenticação
+var Options := TJwtAuthenticationOptions.Default('my-secret-key');
+App.UseMiddleware(TJwtAuthenticationMiddleware, TValue.From(Options));
+
+// Endpoint de login (gera token)
+App.MapPostR<TLoginRequest, IResult>('/api/auth/login',
+  function(Request: TLoginRequest): IResult
+  var
+    Claims: TArray<TClaim>;
+    Token: string;
+  begin
+    // Validar credenciais
+    if ValidateUser(Request) then
+    begin
+      // ✅ Criar claims com fluent builder
+      Claims := TClaimsBuilder.Create
+        .WithNameIdentifier('123')
+        .WithName(Request.Username)
+        .WithRole('Admin')
+        .Build;
+      
+      Token := JwtHandler.GenerateToken(Claims);
+      Result := Results.Ok(Format('{"token":"%s"}', [Token]));
+    end
+    else
+      Result := Results.BadRequest('{"error":"Invalid credentials"}');
+  end);
+
+// Endpoint protegido (requer autenticação)
+App.MapGetR<IHttpContext, IResult>('/api/protected',
+  function(Context: IHttpContext): IResult
+  begin
+    if (Context.User = nil) or not Context.User.Identity.IsAuthenticated then
+      Result := Results.StatusCode(401, '{"error":"Unauthorized"}')
+    else
+      Result := Results.Ok(Format('{"user":"%s"}', [Context.User.Identity.Name]));
+  end);
+```
+
+**Recursos:**
+- Geração e validação de tokens JWT (HMAC-SHA256)
+- Claims-based identity
+- Autorização baseada em roles (`IsInRole`)
+- Middleware automático de autenticação
+- **Claims Builder** com fluent interface para criar claims elegantemente
+
+```pascal
+// Sintaxe fluente para criar claims
+var Claims := TClaimsBuilder.Create
+  .WithNameIdentifier('123')
+  .WithName('john.doe')
+  .WithEmail('john@example.com')
+  .WithRole('Admin')
+  .WithRole('User')  // Múltiplas roles
+  .AddClaim('custom', 'value')  // Claims personalizados
+  .Build;
+```
+
+📚 **[Documentação Completa de JWT](docs/JWT-Authentication.md)**
+
+### 7. **CORS (Cross-Origin Resource Sharing)** 🌐
+Configure CORS de forma simples e segura:
+
+```pascal
+uses
+  Dext.Http.Cors;
+
+// ✅ Desenvolvimento - Permitir qualquer origem
+TApplicationBuilderCorsExtensions.UseCors(Builder,
+  procedure(Cors: TCorsBuilder)
+  begin
+    Cors
+      .AllowAnyOrigin
+      .AllowAnyMethod
+      .AllowAnyHeader;
+  end);
+
+// ✅ Produção - Origens específicas
+TApplicationBuilderCorsExtensions.UseCors(Builder,
+  procedure(Cors: TCorsBuilder)
+  begin
+    Cors
+      .WithOrigins(['https://myapp.com', 'https://www.myapp.com'])
+      .WithMethods(['GET', 'POST', 'PUT', 'DELETE'])
+      .WithHeaders(['Content-Type', 'Authorization'])
+      .AllowCredentials
+      .WithMaxAge(3600); // Cache preflight por 1 hora
+  end);
+```
+
+**Recursos:**
+- Builder fluente para configuração elegante
+- Suporte a preflight requests (OPTIONS)
+- Múltiplas origens ou wildcard (*)
+- Configuração de métodos, headers e credentials
+- Cache de preflight configurável
+
+📚 **[Documentação Completa de CORS](docs/CORS.md)**
+
+### 8. **Rate Limiting** 🚦
+Proteja sua API contra abuso e ataques DDoS:
+
+```pascal
+uses
+  Dext.RateLimiting;
+
+// ✅ Padrão - 100 requisições por minuto
+TApplicationBuilderRateLimitExtensions.UseRateLimiting(Builder);
+
+// ✅ Personalizado
+TApplicationBuilderRateLimitExtensions.UseRateLimiting(Builder,
+  procedure(RateLimit: TRateLimitBuilder)
+  begin
+    RateLimit
+      .WithPermitLimit(50)      // 50 requests
+      .WithWindow(60)            // per 60 seconds
+      .WithRejectionMessage('{"error":"Too many requests"}')
+      .WithRejectionStatusCode(429);
+  end);
+```
+
+**Recursos:**
+- Builder fluente para configuração
+- Thread-safe com `TCriticalSection`
+- Headers informativos (X-RateLimit-*)
+- Limpeza automática de entradas expiradas
+- Baseado em IP do cliente
+
+**Headers retornados:**
+```
+X-RateLimit-Limit: 50
+X-RateLimit-Remaining: 45
+Retry-After: 60 (quando limitado)
+```
+
+📚 **[Documentação Completa de Rate Limiting](docs/Rate-Limiting.md)**
+
+### 9. **Smart Binding Automático**
+O framework detecta automaticamente a origem dos parâmetros:
+
+| Tipo | Origem | Exemplo |
+|------|--------|---------|
+| `Integer`, `String`, etc. | Route ou Query | `/users/{id}` |
+| `Record` | Body (POST/PUT) ou Query (GET) | JSON → Record |
+| `Interface` | DI Container | `IUserService` |
+| `IHttpContext` | Framework | Acesso direto ao contexto |
+
+## 📦 Instalação
+
+1. Clone o repositório:
+```bash
+git clone https://github.com/seu-usuario/dext.git
+cd dext
+```
+
+2. Adicione os paths ao seu projeto:
+```
+Sources\Core
+Sources\Core\Drivers
+```
+
+3. Adicione as units necessárias:
+```pascal
+uses
+  Dext.Core.WebApplication,
+  Dext.Core.ApplicationBuilder.Extensions,
+  Dext.Http.Results,
+  Dext.Validation,
+  Dext.DI.Extensions;
+```
+
+## 🎯 Exemplo Completo
+
+```pascal
+program MyAPI;
+
+uses
+  Dext.Core.WebApplication,
+  Dext.Core.ApplicationBuilder.Extensions,
+  Dext.Http.Results,
+  Dext.Validation,
+  Dext.DI.Extensions;
+
+type
+  TCreateUserRequest = record
+    [Required]
+    [StringLength(3, 50)]
+    Name: string;
+    
+    [Required]
+    [EmailAddress]
+    Email: string;
+    
+    [Range(18, 120)]
+    Age: Integer;
+  end;
+
+  IUserService = interface
+    ['{GUID}']
+    function CreateUser(const Request: TCreateUserRequest): Integer;
+  end;
+
+  TUserService = class(TInterfacedObject, IUserService)
+  public
+    function CreateUser(const Request: TCreateUserRequest): Integer;
+  end;
+
+function TUserService.CreateUser(const Request: TCreateUserRequest): Integer;
 begin
-  TServiceCollectionExtensions.AddSingleton<IUserService, TUserService>(Services);
-end)
+  // Lógica de criação
+  Result := 1;
+end;
 
-// Injetar em handler
-MapGet<Integer, IUserService, IHttpContext>(
-  App, '/api/users/{id}',
-  procedure(UserId: Integer; UserService: IUserService; Ctx: IHttpContext)
-  begin
-    var UserName := UserService.GetUserName(UserId);
-    Ctx.Response.Json(Format('{"name":"%s"}', [UserName]));
-  end
-);
+var
+  App: IWebApplication;
+begin
+  App := TDextApplication.Create;
+  
+  // Configurar DI
+  App.Services.AddSingleton<IUserService, TUserService>;
+  
+  var Builder := App.GetApplicationBuilder;
+  
+  // Middleware de logging
+  Builder.Use(
+    procedure(Ctx: IHttpContext; Next: TRequestDelegate)
+    begin
+      WriteLn('Request: ' + Ctx.Request.Path);
+      Next(Ctx);
+    end);
+  
+  // Rotas
+  Builder.MapGetR<IResult>('/',
+    function: IResult
+    begin
+      Result := Results.Ok('{"message":"Welcome to Dext API"}');
+    end);
+  
+  Builder.MapPostR<TCreateUserRequest, IUserService, IResult>('/api/users',
+    function(Request: TCreateUserRequest; UserService: IUserService): IResult
+    var
+      Validator: IValidator<TCreateUserRequest>;
+      ValidationResult: TValidationResult;
+      UserId: Integer;
+    begin
+      // Validar
+      Validator := TValidator<TCreateUserRequest>.Create;
+      ValidationResult := Validator.Validate(Request);
+      
+      if not ValidationResult.IsValid then
+      begin
+        Result := Results.BadRequest('{"error":"Validation failed"}');
+        ValidationResult.Free;
+        Exit;
+      end;
+      
+      ValidationResult.Free;
+      
+      // Criar usuário
+      UserId := UserService.CreateUser(Request);
+      
+      Result := Results.Created(
+        Format('/api/users/%d', [UserId]),
+        Format('{"id":%d,"name":"%s"}', [UserId, Request.Name])
+      );
+    end);
+  
+  App.Run(8080);
+  ReadLn;
+end.
 ```
 
-### CRUD Completo
+## 🧪 Testando
 
-```pascal
-// GET
-MapGet<Integer, IHttpContext>(App, '/api/users/{id}', GetUser);
-
-// POST
-MapPost<TCreateUserRequest, IHttpContext>(App, '/api/users', CreateUser);
-
-// PUT
-MapPut<Integer, TUpdateUserRequest, IHttpContext>(App, '/api/users/{id}', UpdateUser);
-
-// DELETE
-MapDelete<Integer, IHttpContext>(App, '/api/users/{id}', DeleteUser);
-```
-
-## 📚 Documentação
-
-- [📖 Minimal API Guide](Docs/MinimalAPI.md) - Guia completo da Minimal API
-- [🔗 Model Binding](Docs/ModelBinding.md) - Detalhes sobre binding de parâmetros
-- [💉 Dependency Injection](Docs/DependencyInjection.md) - Sistema de DI
-- [📦 JSON Serialization](Docs/JSON.md) - Serialização JSON
-- [🛣️ Routing](Docs/Routing.md) - Sistema de rotas
-
-## 🏗️ Arquitetura
-
-```
-Dext Framework
-│
-├── Core
-│   ├── ApplicationBuilder      # Configuração da aplicação
-│   ├── HandlerInvoker          # Invocação de handlers
-│   ├── ModelBinding            # Binding de parâmetros
-│   └── Routing                 # Sistema de rotas
-│
-├── DI
-│   ├── ServiceCollection       # Registro de serviços
-│   └── ServiceProvider         # Resolução de dependências
-│
-├── Http
-│   ├── Interfaces              # Abstrações HTTP
-│   ├── Core                    # Implementação core
-│   ├── Indy                    # Servidor Indy
-│   └── Middleware              # Pipeline de middleware
-│
-└── Json
-    ├── Serialization           # Serialização JSON
-    └── Drivers                 # Drivers JSON (JsonDataObjects)
-```
-
-## 🔧 Componentes Principais
-
-### TApplicationBuilder
-
-Constrói o pipeline de processamento de requisições:
-
-```pascal
-var App := TDextWebHost.CreateDefaultBuilder
-  .ConfigureServices(...)  // Registrar serviços
-  .Configure(...)          // Configurar rotas e middleware
-  .Build;                  // Construir aplicação
-```
-
-### THandlerInvoker
-
-Invoca handlers com binding automático de parâmetros:
-
-```pascal
-Invoker.Invoke<T1, T2, T3>(Handler);
-```
-
-### TModelBinder
-
-Realiza binding de parâmetros de múltiplas fontes:
-
-```pascal
-Binder.BindBody(TypeInfo(TUser), Context);
-Binder.BindRoute(TypeInfo(Integer), Context);
-Binder.BindQuery(TypeInfo(TFilter), Context);
-```
-
-## 🧪 Testes
-
-Execute os testes de exemplo:
+Execute o exemplo `Dext.MinimalAPITest.dpr`:
 
 ```bash
 cd Sources\Tests
@@ -213,47 +386,66 @@ Dext.MinimalAPITest.exe
 Teste com curl:
 
 ```bash
-# GET
+# GET simples
 curl http://localhost:8080/api/users/123
 
-# POST
+# POST válido
 curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
-  -d '{"name":"John","email":"john@example.com"}'
+  -d '{"name":"John Doe","email":"john@example.com","age":30}'
 
-# PUT
-curl -X PUT http://localhost:8080/api/users/123 \
+# POST inválido (falha na validação)
+curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
-  -d '{"name":"Jane","email":"jane@example.com"}'
-
-# DELETE
-curl -X DELETE http://localhost:8080/api/users/123
+  -d '{"name":"Jo","email":"invalid","age":15}'
 ```
 
-## 🗺️ Roadmap
+## 📚 Estrutura do Projeto
 
-### v1.0 (Atual)
-- [x] Minimal API básica
-- [x] Model Binding (Body, Query, Route, Header, Services)
-- [x] Route Parameters com primitivos
-- [x] Dependency Injection
-- [x] JSON Serialization
-- [x] MapGet, MapPost, MapPut, MapDelete
+```
+Dext/
+├── Sources/
+│   ├── Core/
+│   │   ├── Dext.Http.Interfaces.pas       # Interfaces principais
+│   │   ├── Dext.Http.Results.pas          # Result Helpers
+│   │   ├── Dext.Core.HandlerInvoker.pas   # Invocação de handlers
+│   │   ├── Dext.Core.ModelBinding.pas     # Smart Binding
+│   │   ├── Dext.Validation.pas            # Framework de validação
+│   │   ├── Dext.DI.Core.pas               # Dependency Injection
+│   │   └── Drivers/                       # Drivers JSON
+│   ├── Examples/
+│   │   └── TaskFlowAPI/                   # Exemplo completo
+│   └── Tests/
+│       └── Dext.MinimalAPITest.dpr        # Suite de testes
+```
 
-### v1.1 (Próximo)
-- [ ] Smart Binding (múltiplas fontes em um record)
-- [ ] Middleware customizados
-- [ ] Validação de modelos
-- [ ] CORS configurável
-- [ ] Rate limiting
+## 🔧 Arquitetura
 
-### v2.0 (Futuro)
-- [ ] WebSockets
-- [ ] SignalR
-- [ ] GraphQL
-- [ ] OpenAPI/Swagger
-- [ ] Autenticação JWT
-- [ ] Entity Framework
+### Pipeline de Requisição
+
+```
+Request → Middlewares → Routing → Model Binding → Handler → Result → Response
+```
+
+1. **Middlewares**: Processamento antes/depois (logging, auth, etc.)
+2. **Routing**: Encontra o handler correto baseado no path
+3. **Model Binding**: Converte dados da requisição em parâmetros tipados
+4. **Handler**: Sua lógica de negócio
+5. **Result**: Converte o retorno em resposta HTTP
+
+### Convenções de Nomenclatura
+
+- **`Map*`**: Métodos que retornam `void` ou manipulam `IHttpContext` diretamente
+- **`Map*R`**: Métodos que retornam `IResult` (Result Helpers)
+
+Exemplo:
+```pascal
+// Tradicional
+MapPost<TUser, IHttpContext>(...);
+
+// Com Result Helpers
+MapPostR<TUser, IResult>(...);
+```
 
 ## 🤝 Contribuindo
 
@@ -265,41 +457,15 @@ Contribuições são bem-vindas! Por favor:
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## 📝 Changelog
+## 📝 Licença
 
-### [1.0.0] - 2025-11-19
-
-#### Added
-- Minimal API com extensões genéricas
-- Model Binding de múltiplas fontes
-- Route Parameters com tipos primitivos
-- MapPut e MapDelete
-- Dependency Injection integrado
-- JSON Serialization automática
-- Documentação completa
-
-#### Fixed
-- Correção de binding de route parameters
-- Tratamento de erros de conversão de tipos
-
-## 📄 Licença
-
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
 ## 🙏 Agradecimentos
 
-- Inspirado no ASP.NET Core Minimal APIs
+- Inspirado por ASP.NET Core Minimal APIs
 - Comunidade Delphi
-- Contribuidores do projeto
-
-## 📧 Contato
-
-- **Autor**: [Seu Nome]
-- **Email**: [seu@email.com]
-- **GitHub**: [@seu-usuario](https://github.com/seu-usuario)
 
 ---
 
 **Desenvolvido com ❤️ usando Delphi**
-
-⭐ Se este projeto foi útil, considere dar uma estrela!

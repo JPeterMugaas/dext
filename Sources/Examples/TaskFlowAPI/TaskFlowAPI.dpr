@@ -13,6 +13,7 @@ uses
   TaskFlow.Handlers.Tasks,
   Dext.Core.HandlerInvoker,
   Dext.Core.ApplicationBuilder.Extensions, // ✅ Extensões genéricas
+  Dext.Http.Results, // ✅ Helpers de Resultado
   System.SysUtils;
 
 type
@@ -67,57 +68,63 @@ begin
     WriteLn('✅ Auto-mapped routes registered');
     WriteLn('');
 
-    // 4. ✅ MAPEAMENTO MANUAL SIMPLES - FASE 1.1
+    // 4. ✅ MAPEAMENTO COM SMART BINDING (FASE 2)
     var AppBuilder := App.GetApplicationBuilder;
+
+    // ✅ Functional Middleware: Logging Simples
+    AppBuilder.Use(
+      procedure(Context: IHttpContext; Next: TRequestDelegate)
+      begin
+        WriteLn(Format('📝 [LOG] Request: %s %s', [Context.Request.Method, Context.Request.Path]));
+        
+        // Chama o próximo middleware
+        Next(Context);
+        
+        WriteLn('📝 [LOG] Response sent');
+      end);
 
     // Rota raiz
     AppBuilder.MapGet('/',
       procedure(Context: IHttpContext)
       begin
-        Context.Response.StatusCode := 200;
-        Context.Response.Json('{"message": "Dext Framework API", "status": "running"}');
+        Context.Response.Json('{"message": "Dext Framework API", "status": "running", "version": "0.2.0"}');
       end);
 
-    // Handler SIMPLES - sem DI, sem binding complexo
+    // GET /api/tasks - Lista todas as tarefas (Simples)
     AppBuilder.MapGet('/api/tasks',
       procedure(Context: IHttpContext)
       begin
-        WriteLn('🎯 HANDLER: Simple GetTasks executing');
-        Context.Response.StatusCode := 200;
         Context.Response.Json('{"message": "Tasks endpoint", "count": 5}');
-        WriteLn('✅ Handler completed');
       end);
 
-    AppBuilder.MapGet('/api/tasks/1',
-      procedure(Context: IHttpContext)
+    // GET /api/tasks/{id} - Smart Binding de Inteiro (Route Param) + Results
+    TApplicationBuilderExtensions.MapGetR<Integer, IResult>(AppBuilder, '/api/tasks/{id}',
+      function(Id: Integer): IResult
       begin
-        WriteLn('🎯 HANDLER: Simple GetTask by ID executing');
-        Context.Response.StatusCode := 200;
-        Context.Response.Json('{"id": 1, "title": "Sample Task", "status": "pending"}');
-        WriteLn('✅ Handler completed');
+        WriteLn(Format('🎯 HANDLER: GetTaskById (%d)', [Id]));
+        Result := Results.Json(Format('{"id": %d, "title": "Sample Task", "status": "pending"}', [Id]));
       end);
 
+    // GET /api/tasks/stats - Mantido simples
     AppBuilder.MapGet('/api/tasks/stats',
       procedure(Context: IHttpContext)
       begin
-        WriteLn('🎯 HANDLER: Simple GetStats executing');
-        Context.Response.StatusCode := 200;
         Context.Response.Json('{"total": 10, "completed": 3, "pending": 7}');
-        WriteLn('✅ Handler completed');
       end);
 
-    // Handler com erro para testar invoker
-    AppBuilder.MapGet('/api/tasks/error',
-      procedure(Context: IHttpContext)
+    // DELETE /api/tasks/{id} - Smart Binding + Service Injection (Simulado)
+    TApplicationBuilderExtensions.MapDelete<Integer, IHttpContext>(AppBuilder, '/api/tasks/{id}',
+      procedure(Id: Integer; Context: IHttpContext)
       begin
-        WriteLn('🎯 HANDLER: Simulating error...');
-        raise Exception.Create('Simulated error for testing');
+        WriteLn(Format('🎯 HANDLER: DeleteTask (%d)', [Id]));
+        // Aqui poderíamos injetar um ITaskService
+        Context.Response.StatusCode := 204; // No Content
       end);
 
-    // ✅ NOVO: Endpoint com Handler Injection (Minimal API Style)
-    // Recebe: Body (TUser), Serviço (IUserService), Contexto (IHttpContext)
-    TApplicationBuilderExtensions.MapPost<TUser, IUserService, IHttpContext>(AppBuilder, '/api/users',
-      procedure(User: TUser; UserService: IUserService; Context: IHttpContext)
+    // ✅ NOVO: Endpoint com Handler Injection (Minimal API Style) + Results
+    // Recebe: Body (TUser), Serviço (IUserService) -> Retorna IResult
+    TApplicationBuilderExtensions.MapPostR<TUser, IUserService, IResult>(AppBuilder, '/api/users',
+      function(User: TUser; UserService: IUserService): IResult
       var
         CreatedUser: TUser;
       begin
@@ -126,9 +133,9 @@ begin
         // Lógica de negócio usando o serviço injetado
         CreatedUser := UserService.CreateUser(User);
         
-        // Resposta usando o contexto injetado
-        Context.Response.StatusCode := 201;
-        Context.Response.Json(Format('{"message": "User created", "name": "%s", "email": "%s"}', 
+        // Resposta usando Results helper
+        Result := Results.Created('/api/users/1', 
+          Format('{"message": "User created", "name": "%s", "email": "%s"}', 
           [CreatedUser.Name, CreatedUser.Email]));
           
         WriteLn('✅ Handler completed');

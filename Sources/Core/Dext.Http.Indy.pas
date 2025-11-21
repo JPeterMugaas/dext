@@ -5,7 +5,7 @@ interface
 uses
   System.Classes, System.Generics.Collections, System.SysUtils,
   IdCustomHTTPServer, IdContext, IdGlobal, IdURI, IdHeaderList,
-  Dext.Http.Interfaces, Dext.DI.Interfaces;
+  Dext.Http.Interfaces, Dext.DI.Interfaces, Dext.Auth.Identity;
 
 type
   TIndyHttpRequest = class(TInterfacedObject, IHttpRequest)
@@ -46,7 +46,7 @@ type
     FRequest: IHttpRequest;
     FResponse: IHttpResponse;
     FServices: IServiceProvider;
-    FUser: TObject;
+    FUser: IClaimsPrincipal;
   public
     constructor Create(ARequestInfo: TIdHTTPRequestInfo;
       AResponseInfo: TIdHTTPResponseInfo; const AServices: IServiceProvider);
@@ -54,8 +54,8 @@ type
     function GetRequest: IHttpRequest;
     function GetResponse: IHttpResponse;
     function GetServices: IServiceProvider;
-    function GetUser: TObject;
-    procedure SetUser(const AValue: TObject);
+    function GetUser: IClaimsPrincipal;
+    procedure SetUser(const AValue: IClaimsPrincipal);
   end;
 
 implementation
@@ -228,12 +228,12 @@ begin
   Result := FServices;
 end;
 
-function TIndyHttpContext.GetUser: TObject;
+function TIndyHttpContext.GetUser: IClaimsPrincipal;
 begin
   Result := FUser;
 end;
 
-procedure TIndyHttpContext.SetUser(const AValue: TObject);
+procedure TIndyHttpContext.SetUser(const AValue: IClaimsPrincipal);
 begin
   FUser := AValue;
 end;

@@ -6,3 +6,5 @@ __recover
 *.local
 *.log
 *.txt
+*.dcu
+*.exe

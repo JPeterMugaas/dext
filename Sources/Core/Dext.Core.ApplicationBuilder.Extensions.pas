@@ -58,6 +58,29 @@ type
 
     class function MapDelete<T1, T2, T3>(App: IApplicationBuilder; const Path: string; 
       Handler: THandlerProc<T1, T2, T3>): IApplicationBuilder; overload;
+
+    // Extensions for handlers returning IResult
+    class function MapGetR<TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<TResult>): IApplicationBuilder; overload;
+    class function MapGetR<T, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T, TResult>): IApplicationBuilder; overload;
+    class function MapGetR<T1, T2, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder; overload;
+      
+    class function MapPostR<T, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T, TResult>): IApplicationBuilder; overload;
+    class function MapPostR<T1, T2, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder; overload;
+
+    class function MapPutR<T, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T, TResult>): IApplicationBuilder; overload;
+    class function MapPutR<T1, T2, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder; overload;
+
+    class function MapDeleteR<T, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T, TResult>): IApplicationBuilder; overload;
+    class function MapDeleteR<T1, T2, TResult>(App: IApplicationBuilder; const Path: string;
+      Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder; overload;
   end;
 
 implementation
@@ -299,6 +322,186 @@ begin
       Invoker := THandlerInvoker.Create(Ctx, Binder);
       try
         Invoker.Invoke<T1, T2, T3>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapGetR<TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<TResult>): IApplicationBuilder;
+begin
+  Result := App.MapGet(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapGetR<T, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T, TResult>): IApplicationBuilder;
+begin
+  Result := App.MapGet(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapGetR<T1, T2, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder;
+begin
+  Result := App.MapGet(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T1, T2, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapPostR<T, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T, TResult>): IApplicationBuilder;
+begin
+  Result := App.MapPost(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapPostR<T1, T2, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder;
+begin
+  Result := App.MapPost(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T1, T2, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+
+class function TApplicationBuilderExtensions.MapPutR<T, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T, TResult>): IApplicationBuilder;
+begin
+  Result := App.Map(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      if Ctx.Request.Method <> 'PUT' then Exit;
+      
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapPutR<T1, T2, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder;
+begin
+  Result := App.Map(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      if Ctx.Request.Method <> 'PUT' then Exit;
+      
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T1, T2, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapDeleteR<T, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T, TResult>): IApplicationBuilder;
+begin
+  Result := App.Map(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      if Ctx.Request.Method <> 'DELETE' then Exit;
+      
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T, TResult>(Handler);
+      finally
+        Invoker.Free;
+      end;
+    end);
+end;
+
+class function TApplicationBuilderExtensions.MapDeleteR<T1, T2, TResult>(App: IApplicationBuilder;
+  const Path: string; Handler: THandlerFunc<T1, T2, TResult>): IApplicationBuilder;
+begin
+  Result := App.Map(Path,
+    procedure(Ctx: IHttpContext)
+    var
+      Invoker: THandlerInvoker;
+      Binder: IModelBinder;
+    begin
+      if Ctx.Request.Method <> 'DELETE' then Exit;
+      
+      Binder := TModelBinder.Create;
+      Invoker := THandlerInvoker.Create(Ctx, Binder);
+      try
+        Invoker.Invoke<T1, T2, TResult>(Handler);
       finally
         Invoker.Free;
       end;

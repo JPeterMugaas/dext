@@ -9,7 +9,9 @@ uses
   Dext.Http.Interfaces,
   Dext.WebHost,
   Dext.Core.ApplicationBuilder.Extensions,
-  Dext.Core.HandlerInvoker;
+  Dext.Core.HandlerInvoker,
+  Dext.Http.Results,
+  Dext.Validation; // ✅ Validation Framework
 
 {$R *.res}
 
@@ -28,10 +30,17 @@ type
     function DeleteUser(UserId: Integer): Boolean;
   end;
 
-  // ✅ Request/Response Records
+  // ✅ Request/Response Records with Validation
   TCreateUserRequest = record
+    [Required]
+    [StringLength(3, 50)]
     Name: string;
+    
+    [Required]
+    [EmailAddress]
     Email: string;
+    
+    [Range(18, 120)]
     Age: Integer;
   end;
 
@@ -80,16 +89,16 @@ begin
         WriteLn;
 
         // ========================================
-        // 1️⃣ GET with Route Parameter (Integer)
+        // 1️⃣ GET with Route Parameter (Integer) + Results
         // ========================================
         WriteLn('1️⃣  GET /api/users/{id} - Route param binding (Integer)');
-        TApplicationBuilderExtensions.MapGet<Integer, IHttpContext>(
+        TApplicationBuilderExtensions.MapGetR<Integer, IResult>(
           App,
           '/api/users/{id}',
-          procedure(UserId: Integer; Ctx: IHttpContext)
+          function(UserId: Integer): IResult
           begin
             WriteLn(Format('  → GET User: %d', [UserId]));
-            Ctx.Response.Json(Format('{"userId":%d,"message":"User retrieved"}', [UserId]));
+            Result := Results.Json(Format('{"userId":%d,"message":"User retrieved"}', [UserId]));
           end
         );
 
@@ -109,18 +118,49 @@ begin
         );
 
         // ========================================
-        // 3️⃣ POST with Body Binding (Record)
+        // 3️⃣ POST with Body Binding + Validation + Results
         // ========================================
-        WriteLn('3️⃣  POST /api/users - Body binding (Record)');
-        TApplicationBuilderExtensions.MapPost<TCreateUserRequest, IHttpContext>(
+        WriteLn('3️⃣  POST /api/users - Body binding with Validation');
+        TApplicationBuilderExtensions.MapPostR<TCreateUserRequest, IResult>(
           App,
           '/api/users',
-          procedure(Request: TCreateUserRequest; Ctx: IHttpContext)
+          function(Request: TCreateUserRequest): IResult
+          var
+            Validator: IValidator<TCreateUserRequest>;
+            ValidationResult: TValidationResult;
+            Error: TValidationError;
+            ErrorsJson: string;
           begin
-            WriteLn(Format('  → Creating user: %s <%s>, Age: %d', 
+            // ✅ Validate the request
+            Validator := TValidator<TCreateUserRequest>.Create;
+            ValidationResult := Validator.Validate(Request);
+            
+            if not ValidationResult.IsValid then
+            begin
+              WriteLn('  ❌ Validation failed:');
+              ErrorsJson := '[';
+              for Error in ValidationResult.Errors do
+              begin
+                WriteLn(Format('     - %s: %s', [Error.FieldName, Error.ErrorMessage]));
+                if ErrorsJson <> '[' then
+                  ErrorsJson := ErrorsJson + ',';
+                ErrorsJson := ErrorsJson + Format('{"field":"%s","message":"%s"}', 
+                  [Error.FieldName, Error.ErrorMessage]);
+              end;
+              ErrorsJson := ErrorsJson + ']';
+              
+              ValidationResult.Free;
+              Result := Results.BadRequest(Format('{"errors":%s}', [ErrorsJson]));
+              Exit;
+            end;
+            
+            ValidationResult.Free;
+            
+            WriteLn(Format('  ✅ Creating user: %s <%s>, Age: %d', 
               [Request.Name, Request.Email, Request.Age]));
-            Ctx.Response.StatusCode := 201;
-            Ctx.Response.Json(Format('{"name":"%s","email":"%s","age":%d,"message":"User created"}', 
+            
+            Result := Results.Created('/api/users/1', 
+              Format('{"name":"%s","email":"%s","age":%d,"message":"User created"}', 
               [Request.Name, Request.Email, Request.Age]));
           end
         );
@@ -172,16 +212,16 @@ begin
         );
 
         // ========================================
-        // 7️⃣ GET with Context (traditional)
+        // 7️⃣ GET with Context (traditional) -> Results
         // ========================================
-        WriteLn('7️⃣  GET /api/health - IHttpContext (traditional)');
-        TApplicationBuilderExtensions.MapGet<IHttpContext>(
+        WriteLn('7️⃣  GET /api/health - Results.Ok');
+        TApplicationBuilderExtensions.MapGetR<IResult>(
           App,
           '/api/health',
-          procedure(Ctx: IHttpContext)
+          function: IResult
           begin
             WriteLn('  → Health check');
-            Ctx.Response.Json('{"status":"healthy","timestamp":"' + 
+            Result := Results.Ok('{"status":"healthy","timestamp":"' + 
               DateTimeToStr(Now) + '"}');
           end
         );
@@ -204,10 +244,15 @@ begin
     WriteLn('# 2. GET with route param + service');
     WriteLn('curl http://localhost:8080/api/users/456/name');
     WriteLn;
-    WriteLn('# 3. POST with body');
+    WriteLn('# 3. POST with body (VALID)');
     WriteLn('curl -X POST http://localhost:8080/api/users ^');
     WriteLn('  -H "Content-Type: application/json" ^');
     WriteLn('  -d "{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"age\":30}"');
+    WriteLn;
+    WriteLn('# 3b. POST with body (INVALID - will fail validation)');
+    WriteLn('curl -X POST http://localhost:8080/api/users ^');
+    WriteLn('  -H "Content-Type: application/json" ^');
+    WriteLn('  -d "{\"name\":\"Jo\",\"email\":\"invalid-email\",\"age\":15}"');
     WriteLn;
     WriteLn('# 4. PUT with route param + body');
     WriteLn('curl -X PUT http://localhost:8080/api/users/789 ^');
@@ -237,8 +282,9 @@ begin
   except
     on E: Exception do
     begin
-      WriteLn('❌ Error: ', E.ClassName, ': ', E.Message);
-      ExitCode := 1;
+      WriteLn('❌ Error: ', E.Message);
+      WriteLn('Press Enter to exit...');
+      Readln;
     end;
   end;
 end.

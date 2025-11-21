@@ -7,7 +7,8 @@ uses
   System.Rtti,
   System.SysUtils,
   System.Generics.Collections,
-  Dext.DI.Interfaces;
+  Dext.DI.Interfaces,
+  Dext.Auth.Identity;
 
 type
   IHttpContext = interface;
@@ -19,6 +20,12 @@ type
 
   TRequestDelegate = reference to procedure(AContext: IHttpContext);
   TStaticHandler = reference to procedure(AContext: IHttpContext);
+  TMiddlewareDelegate = reference to procedure(AContext: IHttpContext; ANext: TRequestDelegate);
+
+  IResult = interface
+    ['{D6F5E4A3-9B2C-4D1E-8F7A-6C5B4E3D2F1A}']
+    procedure Execute(AContext: IHttpContext);
+  end;
 
   IHttpRequest = interface
     ['{C3E8F1A2-4B7D-4A9C-9E2B-8F6D5A1C3E7F}']
@@ -51,12 +58,12 @@ type
     function GetRequest: IHttpRequest;
     function GetResponse: IHttpResponse;
     function GetServices: IServiceProvider;
-    function GetUser: TObject;
-    procedure SetUser(const AValue: TObject);
+    function GetUser: IClaimsPrincipal;
+    procedure SetUser(const AValue: IClaimsPrincipal);
     property Request: IHttpRequest read GetRequest;
     property Response: IHttpResponse read GetResponse;
     property Services: IServiceProvider read GetServices;
-    property User: TObject read GetUser write SetUser; // Placeholder if needed
+    property User: IClaimsPrincipal read GetUser write SetUser;
   end;
 
   IMiddleware = interface
@@ -68,9 +75,12 @@ type
     ['{A2F8C5D1-8B4E-4A7D-9C3B-6E8F4A2D1C7A}']
     function GetServiceProvider: IServiceProvider;
     function UseMiddleware(AMiddleware: TClass): IApplicationBuilder; overload;
-
     function UseMiddleware(AMiddleware: TClass; const AParam: TValue): IApplicationBuilder; overload;
     function UseMiddleware(AMiddleware: TClass; const AParams: array of TValue): IApplicationBuilder; overload;
+    
+    // ✅ Functional Middleware
+    function Use(AMiddleware: TMiddlewareDelegate): IApplicationBuilder;
+
     function UseModelBinding: IApplicationBuilder;
 
     function Map(const APath: string; ADelegate: TRequestDelegate): IApplicationBuilder;

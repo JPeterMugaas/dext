@@ -17,7 +17,17 @@ uses
 type
   TMiddlewareRegistration = record
     MiddlewareClass: TClass;
+    MiddlewareDelegate: TMiddlewareDelegate; // ✅ NOVO
     Parameters: TArray<TValue>;
+    IsDelegate: Boolean; // ✅ NOVO
+  end;
+
+  TAnonymousMiddleware = class(TInterfacedObject, IMiddleware)
+  private
+    FDelegate: TMiddlewareDelegate;
+  public
+    constructor Create(ADelegate: TMiddlewareDelegate);
+    procedure Invoke(AContext: IHttpContext; ANext: TRequestDelegate);
   end;
 
   TApplicationBuilder = class(TInterfacedObject, IApplicationBuilder)
@@ -35,8 +45,12 @@ type
     function GetServiceProvider: IServiceProvider;
 
     function UseMiddleware(AMiddleware: TClass): IApplicationBuilder; overload;
-    function UseMiddleware(AMiddleware: TClass; const AParam: TValue): IApplicationBuilder; overload; // ✅ NOVO
-    function UseMiddleware(AMiddleware: TClass; const AParams: array of TValue): IApplicationBuilder; overload; // ✅ NOVO
+    function UseMiddleware(AMiddleware: TClass; const AParam: TValue): IApplicationBuilder; overload;
+    function UseMiddleware(AMiddleware: TClass; const AParams: array of TValue): IApplicationBuilder; overload;
+    
+    // ✅ Functional Middleware
+    function Use(AMiddleware: TMiddlewareDelegate): IApplicationBuilder;
+
     function UseModelBinding: IApplicationBuilder;
 
     function Map(const APath: string; ADelegate: TRequestDelegate): IApplicationBuilder;
@@ -59,6 +73,64 @@ uses
   Dext.Http.Indy,
   Dext.Http.Pipeline,
   Dext.Http.RoutingMiddleware;
+
+{ TAnonymousMiddleware }
+
+constructor TAnonymousMiddleware.Create(ADelegate: TMiddlewareDelegate);
+begin
+  inherited Create;
+  FDelegate := ADelegate;
+end;
+
+procedure TAnonymousMiddleware.Invoke(AContext: IHttpContext; ANext: TRequestDelegate);
+begin
+  FDelegate(AContext, ANext);
+end;
+
+// ... (Rest of implementation)
+
+function TApplicationBuilder.Use(AMiddleware: TMiddlewareDelegate): IApplicationBuilder;
+var
+  Registration: TMiddlewareRegistration;
+begin
+  Registration.IsDelegate := True;
+  Registration.MiddlewareDelegate := AMiddleware;
+  Registration.MiddlewareClass := nil;
+  SetLength(Registration.Parameters, 0);
+  
+  FMiddlewares.Add(Registration);
+  Result := Self;
+end;
+
+// ... (Update CreateMiddlewarePipeline to handle delegate)
+
+function TApplicationBuilder.CreateMiddlewarePipeline(const ARegistration: TMiddlewareRegistration;
+  ANext: TRequestDelegate): TRequestDelegate;
+begin
+  Result :=
+    procedure(AContext: IHttpContext)
+    var
+      MiddlewareInstance: IMiddleware;
+    begin
+      if ARegistration.IsDelegate then
+      begin
+        // ✅ Handle Anonymous Middleware
+        MiddlewareInstance := TAnonymousMiddleware.Create(ARegistration.MiddlewareDelegate);
+      end
+      else
+      begin
+        // Handle Class Middleware
+        MiddlewareInstance := CreateMiddlewareInstance(
+          ARegistration.MiddlewareClass, ARegistration.Parameters);
+      end;
+
+      try
+        MiddlewareInstance.Invoke(AContext, ANext);
+      finally
+        // Cleanup
+      end;
+    end;
+end;
 
 procedure InjectRouteParams(AContext: IHttpContext;
   const AParams: TDictionary<string, string>);
@@ -342,24 +414,6 @@ begin
       end;
     end
   );
-end;
-
-function TApplicationBuilder.CreateMiddlewarePipeline(const ARegistration: TMiddlewareRegistration;
-  ANext: TRequestDelegate): TRequestDelegate;
-begin
-  Result :=
-    procedure(AContext: IHttpContext)
-    var
-      MiddlewareInstance: IMiddleware;
-    begin
-      MiddlewareInstance := CreateMiddlewareInstance(
-        ARegistration.MiddlewareClass, ARegistration.Parameters);
-      try
-        MiddlewareInstance.Invoke(AContext, ANext);
-      finally
-        // Cleanup se necessário
-      end;
-    end;
 end;
 
 function TApplicationBuilder.Build: TRequestDelegate;
