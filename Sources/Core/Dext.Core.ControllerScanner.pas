@@ -10,7 +10,8 @@ uses
   System.TypInfo,
   Dext.Core.Routing,
   Dext.DI.Interfaces,
-  Dext.Http.Interfaces;
+  Dext.Http.Interfaces,
+  Dext.OpenAPI.Attributes;
 
 type
   TControllerMethod = record
@@ -273,6 +274,21 @@ begin
 
       WriteLn('    ', ControllerMethod.HttpMethod, ' ', FullPath, ' -> ', ControllerMethod.Method.Name);
 
+      // ✅ VERIFICAR [SwaggerIgnore]
+      var IsIgnored := False;
+      for var Attr in ControllerMethod.Method.GetAttributes do
+        if Attr is SwaggerIgnoreAttribute then
+        begin
+          IsIgnored := True;
+          Break;
+        end;
+
+      if IsIgnored then
+      begin
+        WriteLn('      🚫 Ignored by [SwaggerIgnore]');
+        Continue;
+      end;
+
       // ✅ REGISTRAR ROTA NO APPLICATION BUILDER
       if ControllerMethod.HttpMethod = 'GET' then
           AppBuilder.MapGet(FullPath,
@@ -297,6 +313,63 @@ begin
             Context.Response.Json(Format('{"message": "Auto-route: %s (%s)"}',
               [FullPath, ControllerMethod.HttpMethod]));
           end);
+
+      // ✅ PROCESSAR ATRIBUTOS DE SEGURANÇA (SwaggerAuthorize)
+      var SecuritySchemes := TList<string>.Create;
+      try
+        // 1. Atributos do Controller
+        var TypeAttrs := Controller.RttiType.GetAttributes;
+        for var Attr in TypeAttrs do
+          if Attr is SwaggerAuthorizeAttribute then
+            SecuritySchemes.Add(SwaggerAuthorizeAttribute(Attr).Scheme);
+
+        // 2. Atributos do Método
+        var MethodAttrs := ControllerMethod.Method.GetAttributes;
+        for var Attr in MethodAttrs do
+          if Attr is SwaggerAuthorizeAttribute then
+            SecuritySchemes.Add(SwaggerAuthorizeAttribute(Attr).Scheme);
+
+        // 3. Atualizar Metadados da Rota
+        if SecuritySchemes.Count > 0 then
+        begin
+          var Routes := AppBuilder.GetRoutes;
+          if Length(Routes) > 0 then
+          begin
+            var Metadata := Routes[High(Routes)];
+            Metadata.Security := SecuritySchemes.ToArray;
+            AppBuilder.UpdateLastRouteMetadata(Metadata);
+            WriteLn('      🔒 Secured with: ', string.Join(', ', Metadata.Security));
+          end;
+        end;
+      finally
+        SecuritySchemes.Free;
+      end;
+
+      // ✅ PROCESSAR [SwaggerOperation] e [SwaggerResponse]
+      var Routes := AppBuilder.GetRoutes;
+      if Length(Routes) > 0 then
+      begin
+        var Metadata := Routes[High(Routes)];
+        var Updated := False;
+
+        for var Attr in ControllerMethod.Method.GetAttributes do
+        begin
+          if Attr is SwaggerOperationAttribute then
+          begin
+            var OpAttr := SwaggerOperationAttribute(Attr);
+            if OpAttr.Summary <> '' then Metadata.Summary := OpAttr.Summary;
+            if OpAttr.Description <> '' then Metadata.Description := OpAttr.Description;
+            if Length(OpAttr.Tags) > 0 then Metadata.Tags := OpAttr.Tags;
+            Updated := True;
+          end;
+          // Note: SwaggerResponseAttribute would require extending TEndpointMetadata to support custom responses
+          // For now, we only support default 200 OK response generation
+        end;
+
+        if Updated then
+          AppBuilder.UpdateLastRouteMetadata(Metadata);
+      end;
+
       Inc(Result);
     end;
   end;

@@ -11,11 +11,18 @@ A implementação do Swagger/OpenAPI para o Dext Framework foi concluída com su
    - `TOpenAPIDocument`, `TOpenAPIOperation`, `TOpenAPISchema`
    - `TOpenAPIParameter`, `TOpenAPIResponse`, `TOpenAPIRequestBody`
    - Classes para Info, Server, Contact, License
+   - **NOVO**: Classes para Security Schemes e Requirements
 
 2. **`Dext.OpenAPI.Generator.pas`** - Gerador de documentação OpenAPI
    - `TOpenAPIGenerator` - Converte metadados em JSON OpenAPI 3.0
-   - `TOpenAPIOptions` - Configuração do documento
+   - `TOpenAPIOptions` - Configuração do documento (incluindo Auth)
    - Suporte para parâmetros de rota, request body, responses
+   - **NOVO**: Geração de componentes de segurança e requirements
+
+3. **`Dext.OpenAPI.Attributes.pas`** - Atributos para Swagger
+   - `[SwaggerSchema]`, `[SwaggerProperty]`, `[SwaggerIgnore]`
+   - `[SwaggerAuthorize]` - Segurança
+   - `[SwaggerExample]`, `[SwaggerFormat]`
 
 3. **`Dext.Swagger.Middleware.pas`** - Middleware Swagger
    - `TSwaggerMiddleware` - Serve Swagger UI e OpenAPI JSON
@@ -40,7 +47,11 @@ A implementação do Swagger/OpenAPI para o Dext Framework foi concluída com su
    - Melhores práticas
    - Troubleshooting
 
-2. **`Examples/SwaggerExample.dpr`** - Exemplo prático
+2. **`Docs/OpenAPI_Security.md`** - Documentação de Segurança
+   - Configuração de Authentication Schemes
+   - Proteção de Endpoints (Atributos e Fluente)
+
+3. **`Examples/SwaggerExample.dpr`** - Exemplo prático
    - API completa com endpoints de Users e Products
    - Demonstração de metadados
    - Health check endpoint
@@ -66,7 +77,16 @@ A implementação do Swagger/OpenAPI para o Dext Framework foi concluída com su
 - Detecção de parâmetros de rota (`/users/{id}`)
 - Geração de schemas básicos
 - Suporte para request body e responses
-- Introspection via RTTI (básica)
+- Geração de schemas básicos
+- Suporte para request body e responses
+- Introspection via RTTI Avançada (Records, Arrays, Enums)
+- **NOVO**: Suporte a Security Schemes e Requirements
+
+### ✅ Autenticação e Autorização
+- Suporte a Bearer Auth (JWT) e API Key
+- Atributo `[SwaggerAuthorize]` para Controllers
+- Método `.RequireAuthorization()` para Minimal API
+- Geração automática de `security` no JSON
 
 ### ✅ Swagger UI
 - Interface web interativa
@@ -141,13 +161,13 @@ TEndpointMetadataExtensions.WithMetadata(
 |------------|--------|-------|
 | Roteamento Method-Aware | ✅ Completo | Já estava implementado |
 | Estrutura de Metadados | ✅ Completo | TEndpointMetadata expandido |
-| Gerador OpenAPI | ✅ Completo | Geração básica funcional |
+| Gerador OpenAPI | ✅ Completo | Geração completa funcional |
 | Swagger UI | ✅ Completo | Interface web completa |
-| API Fluente | ✅ Completo | Extensões para metadados |
+| API Fluente | ✅ Completo | Extensões para metadados e segurança |
 | Documentação | ✅ Completo | Guia completo e exemplos |
-| Schema Introspection | 🟡 Básico | RTTI básico implementado |
-| Autenticação | ⏳ Pendente | Planejado para futuro |
-| Exemplos | ✅ Completo | Exemplo funcional criado |
+| Schema Introspection | ✅ Completo | RTTI avançada implementada |
+| Autenticação | ✅ Completo | Suporte a Bearer e API Key |
+| Exemplos | ✅ Completo | Exemplo funcional atualizado |
 
 ## 🧪 Teste de Compilação
 

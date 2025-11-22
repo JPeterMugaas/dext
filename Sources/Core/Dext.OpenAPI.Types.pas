@@ -113,6 +113,7 @@ type
     FParameters: TObjectList<TOpenAPIParameter>;
     FRequestBody: TOpenAPIRequestBody;
     FResponses: TDictionary<string, TOpenAPIResponse>; // Status Code -> Response
+    FSecurity: TList<TDictionary<string, TArray<string>>>;
   public
     constructor Create;
     destructor Destroy; override;
@@ -124,6 +125,7 @@ type
     property Parameters: TObjectList<TOpenAPIParameter> read FParameters;
     property RequestBody: TOpenAPIRequestBody read FRequestBody write FRequestBody;
     property Responses: TDictionary<string, TOpenAPIResponse> read FResponses;
+    property Security: TList<TDictionary<string, TArray<string>>> read FSecurity;
   end;
 
   /// <summary>
@@ -205,6 +207,37 @@ type
   end;
 
   /// <summary>
+  ///   Types of security schemes supported by OpenAPI.
+  /// </summary>
+  TSecuritySchemeType = (sstApiKey, sstHttp, sstOAuth2, sstOpenIdConnect);
+
+  /// <summary>
+  ///   Location of API key for apiKey security scheme.
+  /// </summary>
+  TApiKeyLocation = (aklQuery, aklHeader, aklCookie);
+
+  /// <summary>
+  ///   Represents a security scheme in OpenAPI.
+  /// </summary>
+  TOpenAPISecurityScheme = class
+  private
+    FType: TSecuritySchemeType;
+    FDescription: string;
+    FName: string;              // For apiKey
+    FIn: TApiKeyLocation;       // For apiKey
+    FScheme: string;            // For http (e.g., 'bearer', 'basic')
+    FBearerFormat: string;      // For http bearer (e.g., 'JWT')
+  public
+    property SchemeType: TSecuritySchemeType read FType write FType;
+    property Description: string read FDescription write FDescription;
+    property Name: string read FName write FName;
+    property Location: TApiKeyLocation read FIn write FIn;
+    property Scheme: string read FScheme write FScheme;
+    property BearerFormat: string read FBearerFormat write FBearerFormat;
+  end;
+
+
+  /// <summary>
   ///   Represents a complete OpenAPI 3.0 document.
   /// </summary>
   TOpenAPIDocument = class
@@ -214,6 +247,7 @@ type
     FServers: TObjectList<TOpenAPIServer>;
     FPaths: TDictionary<string, TOpenAPIPathItem>;
     FSchemas: TDictionary<string, TOpenAPISchema>;
+    FSecuritySchemes: TDictionary<string, TOpenAPISecurityScheme>;
   public
     constructor Create;
     destructor Destroy; override;
@@ -223,6 +257,7 @@ type
     property Servers: TObjectList<TOpenAPIServer> read FServers;
     property Paths: TDictionary<string, TOpenAPIPathItem> read FPaths;
     property Schemas: TDictionary<string, TOpenAPISchema> read FSchemas;
+    property SecuritySchemes: TDictionary<string, TOpenAPISecurityScheme> read FSecuritySchemes;
   end;
 
 implementation
@@ -306,6 +341,7 @@ begin
   inherited;
   FParameters := TObjectList<TOpenAPIParameter>.Create(True);
   FResponses := TDictionary<string, TOpenAPIResponse>.Create;
+  FSecurity := TList<TDictionary<string, TArray<string>>>.Create;
 end;
 
 destructor TOpenAPIOperation.Destroy;
@@ -317,6 +353,10 @@ begin
   for Response in FResponses.Values do
     Response.Free;
   FResponses.Free;
+  
+  for var Sec in FSecurity do
+    Sec.Free;
+  FSecurity.Free;
   
   if Assigned(FRequestBody) then
     FRequestBody.Free;
@@ -357,12 +397,14 @@ begin
   FServers := TObjectList<TOpenAPIServer>.Create(True);
   FPaths := TDictionary<string, TOpenAPIPathItem>.Create;
   FSchemas := TDictionary<string, TOpenAPISchema>.Create;
+  FSecuritySchemes := TDictionary<string, TOpenAPISecurityScheme>.Create;
 end;
 
 destructor TOpenAPIDocument.Destroy;
 var
   PathItem: TOpenAPIPathItem;
   Schema: TOpenAPISchema;
+  SecurityScheme: TOpenAPISecurityScheme;
 begin
   FInfo.Free;
   FServers.Free;
@@ -374,6 +416,10 @@ begin
   for Schema in FSchemas.Values do
     Schema.Free;
   FSchemas.Free;
+  
+  for SecurityScheme in FSecuritySchemes.Values do
+    SecurityScheme.Free;
+  FSecuritySchemes.Free;
   
   inherited;
 end;

@@ -29,6 +29,7 @@ type
     Description: string;
     Tags: TArray<string>;
     Parameters: TArray<string>; // Added parameters
+    Security: TArray<string>;   // Security schemes required
   end;
 
   IResult = interface

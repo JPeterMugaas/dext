@@ -131,6 +131,17 @@ type
     property Tag: string read FTag;
   end;
 
+  /// <summary>
+  ///   Marks an endpoint as requiring authentication.
+  /// </summary>
+  SwaggerAuthorizeAttribute = class(TCustomAttribute)
+  private
+    FScheme: string;
+  public
+    constructor Create(const AScheme: string = '');
+    property Scheme: string read FScheme;
+  end;
+
 implementation
 
 { SwaggerOperationAttribute }
@@ -218,6 +229,14 @@ constructor SwaggerTagAttribute.Create(const ATag: string);
 begin
   inherited Create;
   FTag := ATag;
+end;
+
+{ SwaggerAuthorizeAttribute }
+
+constructor SwaggerAuthorizeAttribute.Create(const AScheme: string);
+begin
+  inherited Create;
+  FScheme := AScheme;
 end;
 
 end.

@@ -10,9 +10,10 @@ uses
   Dext.WebHost,
   Dext.Core.ApplicationBuilder.Extensions,
   Dext.Swagger.Middleware,
+  Dext.OpenAPI.Attributes,
   Dext.OpenAPI.Extensions,
   Dext.OpenAPI.Generator,
-  Dext.OpenAPI.Attributes,
+  Dext.OpenAPI.Types,
   Dext.Http.Results,
   Dext.Json;
 
@@ -99,6 +100,10 @@ begin
     Options.ContactEmail := 'contact@dext.dev';
     Options.LicenseName := 'MIT';
     Options.LicenseUrl := 'https://opensource.org/licenses/MIT';
+    
+    // Configure Security Schemes
+    Options := Options.WithBearerAuth('JWT', 'Enter JWT token in format: Bearer {token}');
+    Options := Options.WithApiKeyAuth('X-API-Key', aklHeader, 'API Key for administrative access');
     
     var Host := TDextWebHost.CreateDefaultBuilder
       .ConfigureServices(procedure(Services: IServiceCollection)
@@ -302,6 +307,29 @@ begin
           'Returns the health status of the API',
           ['System']
         );
+
+        // ========================================
+        // Protected Endpoint
+        // ========================================
+
+        Writeln('7. GET /api/admin/secure-data');
+        TEndpointMetadataExtensions.RequireAuthorization(
+          TEndpointMetadataExtensions.WithMetadata(
+            TApplicationBuilderExtensions.MapGet<IHttpContext>(
+              App,
+              '/api/admin/secure-data',
+              procedure(Ctx: IHttpContext)
+              begin
+                // In a real scenario, middleware would validate the token before reaching here
+                Ctx.Response.Json('{"data": "This is top secret data", "access": "granted"}');
+              end
+            ),
+            'Get secure data',
+            'Retrieves sensitive data. Requires Bearer authentication.',
+            ['Admin']
+          ),
+          'bearerAuth'
+        );
       end)
       .Build;
 
@@ -318,6 +346,7 @@ begin
     Writeln('   DELETE /api/users/{id}');
     Writeln('   GET    /api/products');
     Writeln('   GET    /health');
+    Writeln('   GET    /api/admin/secure-data (Protected)');
     Writeln('');
     Writeln('Press Enter to stop the server...');
     Writeln('');

@@ -36,6 +36,12 @@ type
     ///   Adds metadata to the endpoint (summary, description, and tags).
     /// </summary>
     class function WithMetadata(App: IApplicationBuilder; const ASummary, ADescription: string; const ATags: array of string): IApplicationBuilder;
+
+    /// <summary>
+    ///   Adds security requirements to the endpoint.
+    /// </summary>
+    class function RequireAuthorization(App: IApplicationBuilder; const ASchemes: array of string): IApplicationBuilder; overload;
+    class function RequireAuthorization(App: IApplicationBuilder; const AScheme: string): IApplicationBuilder; overload;
   end;
 
 implementation
@@ -143,6 +149,32 @@ begin
     
     App.UpdateLastRouteMetadata(Metadata);
   end;
+end;
+
+class function TEndpointMetadataExtensions.RequireAuthorization(App: IApplicationBuilder; const ASchemes: array of string): IApplicationBuilder;
+var
+  Routes: TArray<TEndpointMetadata>;
+  Metadata: TEndpointMetadata;
+  I: Integer;
+  NewSecurity: TArray<string>;
+begin
+  Result := App;
+  
+  Routes := App.GetRoutes;
+  if Length(Routes) > 0 then
+  begin
+    Metadata := Routes[High(Routes)];
+    SetLength(NewSecurity, Length(ASchemes));
+    for I := 0 to High(ASchemes) do
+      NewSecurity[I] := ASchemes[I];
+    Metadata.Security := NewSecurity;
+    App.UpdateLastRouteMetadata(Metadata);
+  end;
+end;
+
+class function TEndpointMetadataExtensions.RequireAuthorization(App: IApplicationBuilder; const AScheme: string): IApplicationBuilder;
+begin
+  Result := RequireAuthorization(App, [AScheme]);
 end;
 
 end.
