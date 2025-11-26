@@ -20,7 +20,10 @@ uses
   Dext.OpenAPI.Attributes, // Added for SwaggerAuthorize
   Dext.Validation, // Added for Validation attributes
   Dext.Auth.JWT, // Added for Token generation
-  Dext.Auth.Attributes; // Added for AllowAnonymous
+  Dext.Auth.Attributes, // Added for AllowAnonymous
+  Dext.Filters, // Added for Action Filters
+  Dext.Filters.BuiltIn, // Added for built-in filters
+  Dext.Http.Results; // Added for IResult
 
 {.$RTTI EXPLICIT METHODS([vcPublic, vcPublished])}
 
@@ -89,7 +92,68 @@ type
     procedure Login(Ctx: IHttpContext; const Request: TLoginRequest);
   end;
 
+  // ============================================================================
+  // 🎯 ACTION FILTERS DEMONSTRATION
+  // ============================================================================
+  
+  /// <summary>
+  ///   Custom filter that validates admin role
+  /// </summary>
+  RequireAdminRoleAttribute = class(ActionFilterAttribute)
+  public
+    procedure OnActionExecuting(AContext: IActionExecutingContext); override;
+  end;
+
+  /// <summary>
+  ///   Custom filter that adds execution timing to response
+  /// </summary>
+  TimingFilterAttribute = class(ActionFilterAttribute)
+  private
+    FStartTime: TDateTime;
+  public
+    procedure OnActionExecuting(AContext: IActionExecutingContext); override;
+    procedure OnActionExecuted(AContext: IActionExecutedContext); override;
+  end;
+
+  /// <summary>
+  ///   Controller demonstrating all Action Filter features
+  /// </summary>
+  [DextController('/api/filters')]
+  [LogAction] // ✅ Controller-level filter: logs ALL methods
+  TFiltersController = class
+  public
+    // Example 1: Built-in LogAction filter
+    [DextGet('/simple')]
+    procedure SimpleEndpoint(Ctx: IHttpContext);
+
+    // Example 2: Multiple filters
+    [DextGet('/cached')]
+    [ResponseCache(60, 'public')] // Cache for 60 seconds
+    [AddHeader('X-Custom-Header', 'Dext-Rocks')]
+    procedure CachedEndpoint(Ctx: IHttpContext);
+
+    // Example 3: Header validation
+    [DextPost('/secure')]
+    [RequireHeader('X-API-Key', 'API Key is required')]
+    procedure SecureEndpoint(Ctx: IHttpContext);
+
+    // Example 4: Custom filters
+    [DextGet('/admin')]
+    [RequireAdminRole]
+    [TimingFilter]
+    procedure AdminEndpoint(Ctx: IHttpContext);
+
+    // Example 5: Short-circuit demonstration
+    [DextGet('/protected')]
+    [RequireHeader('Authorization', 'Authorization header required')]
+    procedure ProtectedEndpoint(Ctx: IHttpContext);
+  end;
+
+
 implementation
+
+uses
+  System.DateUtils;
 
 { TGreetingService }
 
@@ -167,9 +231,102 @@ begin
   end;
 end;
 
+{ RequireAdminRoleAttribute }
+
+procedure RequireAdminRoleAttribute.OnActionExecuting(AContext: IActionExecutingContext);
+begin
+  // Check if context is valid
+  if (AContext = nil) or (AContext.HttpContext = nil) then
+  begin
+    WriteLn('⛔ RequireAdminRole: Invalid context');
+    Exit;
+  end;
+
+  // Check if user is authenticated and has admin role
+  if (AContext.HttpContext.User = nil) or 
+     (AContext.HttpContext.User.Identity = nil) or
+     (not AContext.HttpContext.User.Identity.IsAuthenticated) then
+  begin
+    WriteLn('⛔ RequireAdminRole: User not authenticated');
+    AContext.Result := Results.StatusCode(401, '{"error":"Authentication required"}');
+    Exit;
+  end;
+
+  if not AContext.HttpContext.User.IsInRole('admin') then
+  begin
+    WriteLn('⛔ RequireAdminRole: User is not admin');
+    AContext.Result := Results.StatusCode(403, '{"error":"Admin role required"}');
+  end;
+end;
+
+
+{ TimingFilterAttribute }
+
+procedure TimingFilterAttribute.OnActionExecuting(AContext: IActionExecutingContext);
+begin
+  FStartTime := Now;
+  WriteLn(Format('⏱️  TimingFilter: Starting %s.%s', 
+    [AContext.ActionDescriptor.ControllerName, AContext.ActionDescriptor.ActionName]));
+end;
+
+procedure TimingFilterAttribute.OnActionExecuted(AContext: IActionExecutedContext);
+var
+  ElapsedMs: Int64;
+begin
+  ElapsedMs := MilliSecondsBetween(Now, FStartTime);
+  WriteLn(Format('⏱️  TimingFilter: Completed in %d ms', [ElapsedMs]));
+  
+  // Add timing header to response
+  AContext.HttpContext.Response.AddHeader('X-Execution-Time-Ms', IntToStr(ElapsedMs));
+end;
+
+{ TFiltersController }
+
+procedure TFiltersController.SimpleEndpoint(Ctx: IHttpContext);
+begin
+  // This endpoint is logged by the controller-level [LogAction] filter
+  Ctx.Response.Json('{"message":"Simple endpoint - check console for log"}');
+end;
+
+procedure TFiltersController.CachedEndpoint(Ctx: IHttpContext);
+begin
+  // This response will be cached for 60 seconds
+  // Check response headers for Cache-Control and X-Custom-Header
+  Ctx.Response.Json(Format('{"message":"Cached response","timestamp":"%s"}', 
+    [DateTimeToStr(Now)]));
+end;
+
+procedure TFiltersController.SecureEndpoint(Ctx: IHttpContext);
+var
+  ApiKey: string;
+begin
+  // If we reach here, the X-API-Key header was present
+  if not Ctx.Request.Headers.TryGetValue('X-API-Key', ApiKey) then
+    ApiKey := 'not-found';
+  Ctx.Response.Json(Format('{"message":"Secure endpoint accessed","apiKey":"%s"}', [ApiKey]));
+end;
+
+procedure TFiltersController.AdminEndpoint(Ctx: IHttpContext);
+begin
+  // If we reach here:
+  // 1. User is authenticated (RequireAdminRole)
+  // 2. User has admin role (RequireAdminRole)
+  // 3. Execution time is being tracked (TimingFilter)
+  Ctx.Response.Json('{"message":"Admin endpoint","user":"' + 
+    Ctx.User.Identity.Name + '"}');
+end;
+
+procedure TFiltersController.ProtectedEndpoint(Ctx: IHttpContext);
+begin
+  // If we reach here, Authorization header was present
+  Ctx.Response.Json('{"message":"Protected endpoint accessed"}');
+end;
+
+
 initialization
   // Force linker to include this class
   TGreetingController.ClassName;
   TAuthController.ClassName;
+  TFiltersController.ClassName;
 
 end.
