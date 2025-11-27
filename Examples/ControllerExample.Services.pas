@@ -7,9 +7,7 @@ uses
   System.Classes,
   System.SyncObjs,
   System.Threading,
-  Dext.HealthChecks,
-  Dext.Hosting.BackgroundService,
-  Dext.Core.CancellationToken; // ✅ Added
+  DextFramework; // ✅ All-in-one framework unit
 
 type
   // Settings Class for IOptions<T>

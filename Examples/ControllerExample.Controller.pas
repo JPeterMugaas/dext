@@ -13,20 +13,9 @@ interface
 uses
   System.Classes,
   System.SysUtils,
-  Dext.Core.Routing,
-  Dext.Http.Interfaces,
-  Dext.Core.Controllers,
-  Dext.Core.ModelBinding, // Added for attributes
-  Dext.OpenAPI.Attributes, // Added for SwaggerAuthorize
-  Dext.Validation, // Added for Validation attributes
-  Dext.Auth.JWT, // Added for Token generation
-  Dext.Auth.Attributes, // Added for AllowAnonymous
-  Dext.Filters, // Added for Action Filters
-  Dext.Filters.BuiltIn, // Added for built-in filters
-  Dext.Http.Results, // Added for IResult
-  Dext.Configuration.Interfaces, // Added for IConfiguration
-  Dext.Options, // Added for IOptions
-  ControllerExample.Services; // Added for TMySettings
+  DextFramework, // ✅ All-in-one framework unit
+  Dext.Options, // Needed for IOptions<T>
+  ControllerExample.Services; // For TMySettings
 
 {.$RTTI EXPLICIT METHODS([vcPublic, vcPublished])}
 

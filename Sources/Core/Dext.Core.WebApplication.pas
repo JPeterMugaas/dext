@@ -24,6 +24,7 @@ type
     function GetApplicationBuilder: IApplicationBuilder;
     function GetConfiguration: IConfiguration;
     function GetServices: TDextServices;
+    function GetBuilder: TDextAppBuilder;
     function UseMiddleware(Middleware: TClass): IWebApplication;
     function MapControllers: IWebApplication;
     procedure Run(Port: Integer = 8080);
@@ -94,6 +95,11 @@ end;
 function TDextApplication.GetServices: TDextServices;
 begin
   Result := TDextServices.Create(FServices);
+end;
+
+function TDextApplication.GetBuilder: TDextAppBuilder;
+begin
+  Result := TDextAppBuilder.Create(FAppBuilder);
 end;
 
 function TDextApplication.MapControllers: IWebApplication;

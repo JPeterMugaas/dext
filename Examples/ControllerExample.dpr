@@ -6,9 +6,6 @@ uses
   System.SysUtils,
   System.Rtti,
   DextFramework, // ✅ The only core unit needed!
-  Dext.Http.Cors,
-  Dext.Http.StaticFiles,
-  Dext.Auth.Middleware,
   ControllerExample.Controller in 'ControllerExample.Controller.pas',
   ControllerExample.Services in 'ControllerExample.Services.pas';
 
@@ -38,25 +35,25 @@ begin
       .Build;
 
     // 5. Configure Middleware Pipeline
-    var Builder := App.GetApplicationBuilder;
+    var Builder := App.Builder;
 
     // CORS
-    var corsOptions := TCorsOptions.Create;
+    var corsOptions := Builder.CreateCorsOptions;
     corsOptions.AllowedOrigins := ['http://localhost:5173'];
     corsOptions.AllowCredentials := True;
-    TApplicationBuilderCorsExtensions.UseCors(Builder, corsOptions);
+    Builder.UseCors(corsOptions);
 
     // Static Files
-    TApplicationBuilderStaticFilesExtensions.UseStaticFiles(Builder);
+    Builder.UseStaticFiles(Builder.CreateStaticFileOptions);
     
     // Health Checks
     App.UseMiddleware(THealthCheckMiddleware);
 
     // JWT Authentication
-    var AuthOptions := TJwtAuthenticationOptions.Default('dext-secret-key-must-be-very-long-and-secure-at-least-32-chars');
+    var AuthOptions := Builder.CreateJwtOptions('dext-secret-key-must-be-very-long-and-secure-at-least-32-chars');
     AuthOptions.Issuer := 'dext-issuer';
     AuthOptions.Audience := 'dext-audience';
-    Builder.UseMiddleware(TJwtAuthenticationMiddleware, TValue.From(AuthOptions));
+    Builder.UseJwtAuthentication(AuthOptions);
        
     // 6. Map Controllers
     App.MapControllers;

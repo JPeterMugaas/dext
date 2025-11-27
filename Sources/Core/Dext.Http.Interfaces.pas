@@ -128,9 +128,22 @@ type
     function Build: IWebHost;
   end;
 
+  /// <summary>
+  ///   Wrapper for IApplicationBuilder to provide factory methods and extensions.
+  /// </summary>
+  TDextAppBuilder = record
+  private
+    FBuilder: IApplicationBuilder;
+  public
+    constructor Create(ABuilder: IApplicationBuilder);
+    function Unwrap: IApplicationBuilder;
+    class operator Implicit(const A: TDextAppBuilder): IApplicationBuilder;
+  end;
+
   IWebApplication = interface
     ['{B6C96B49-0292-42A6-A767-C7EAF52F71FC}']
     function GetServices: TDextServices;
+    function GetBuilder: TDextAppBuilder;
     function UseMiddleware(Middleware: TClass): IWebApplication;
     function MapControllers: IWebApplication;
     function GetApplicationBuilder: IApplicationBuilder;
@@ -138,6 +151,7 @@ type
     procedure Run(Port: Integer = 8080);
 
     property Services: TDextServices read GetServices;
+    property Builder: TDextAppBuilder read GetBuilder;
     property Configuration: IConfiguration read GetConfiguration;
   end;
 
@@ -155,6 +169,23 @@ uses
 class function TDextWebHost.CreateDefaultBuilder: IWebHostBuilder;
 begin
   Result := TWebHostBuilder.Create;
+end;
+
+{ TDextAppBuilder }
+
+constructor TDextAppBuilder.Create(ABuilder: IApplicationBuilder);
+begin
+  FBuilder := ABuilder;
+end;
+
+function TDextAppBuilder.Unwrap: IApplicationBuilder;
+begin
+  Result := FBuilder;
+end;
+
+class operator TDextAppBuilder.Implicit(const A: TDextAppBuilder): IApplicationBuilder;
+begin
+  Result := A.FBuilder;
 end;
 
 end.
