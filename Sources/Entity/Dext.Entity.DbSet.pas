@@ -377,19 +377,33 @@ begin
 end;
 
 function TDbSet<T>.GenerateCreateTableScript: string;
+type
+  TFKInfo = record
+    ColumnName: string;
+    ReferencedTable: string;
+    ReferencedType: PTypeInfo;
+    ReferencedColumn: string;
+    OnDelete: TCascadeAction;
+    OnUpdate: TCascadeAction;
+  end;
 var
   SB: TStringBuilder;
   Pair: TPair<string, string>;
   Prop: TRttiProperty;
   ColName, ColType: string;
-  IsPK, IsAutoInc: Boolean;
+  IsPK, IsAutoInc, IsForeignKey: Boolean;
   First: Boolean;
+  FKAttr: ForeignKeyAttribute;
+  ForeignKeys: TArray<TFKInfo>;
+  FKInfo: TFKInfo;
+  i: Integer;
 begin
   SB := TStringBuilder.Create;
   try
     SB.Append('CREATE TABLE IF NOT EXISTS ').Append(GetTableName).Append(' (');
     
     First := True;
+    SetLength(ForeignKeys, 0);
     
     // Iterate over columns
     for Pair in FColumns do
@@ -403,9 +417,20 @@ begin
       
       IsPK := FPKColumns.Contains(ColName);
       IsAutoInc := False;
+      IsForeignKey := False;
+      FKAttr := nil;
+      
       for var Attr in Prop.GetAttributes do
+      begin
         if Attr is AutoIncAttribute then
           IsAutoInc := True;
+          
+        if Attr is ForeignKeyAttribute then
+        begin
+          IsForeignKey := True;
+          FKAttr := ForeignKeyAttribute(Attr);
+        end;
+      end;
           
       SB.Append(FContext.Dialect.QuoteIdentifier(ColName));
       SB.Append(' ');
@@ -418,18 +443,104 @@ begin
       // For SQLite, AutoInc columns should have PRIMARY KEY
       if IsPK and (FPKColumns.Count = 1) then 
         SB.Append(' PRIMARY KEY');
+        
+      // Collect FK information for later
+      if IsForeignKey and (FKAttr <> nil) then
+      begin
+        // Extract referenced table and column from the property type
+        // For now, we'll use the property type name as the table name
+        // and assume the referenced column is 'Id' (can be enhanced later)
+        FKInfo.ColumnName := FKAttr.ColumnName;
+        FKInfo.ReferencedTable := Prop.PropertyType.Name; // e.g., 'TUser' -> 'users'
+        FKInfo.ReferencedType := Prop.PropertyType.Handle;
+        FKInfo.ReferencedColumn := 'Id'; // Default assumption
+        FKInfo.OnDelete := FKAttr.OnDelete;
+        FKInfo.OnUpdate := FKAttr.OnUpdate;
+        
+        SetLength(ForeignKeys, Length(ForeignKeys) + 1);
+        ForeignKeys[High(ForeignKeys)] := FKInfo;
+      end;
     end;
     
     // Composite PK Constraint
     if FPKColumns.Count > 1 then
     begin
       SB.Append(', PRIMARY KEY (');
-      for var i := 0 to FPKColumns.Count - 1 do
+      for i := 0 to FPKColumns.Count - 1 do
       begin
         if i > 0 then SB.Append(', ');
         SB.Append(FContext.Dialect.QuoteIdentifier(FPKColumns[i]));
       end;
       SB.Append(')');
+    end;
+    
+    // Add FOREIGN KEY constraints
+    for FKInfo in ForeignKeys do
+    begin
+      SB.Append(', FOREIGN KEY (');
+      SB.Append(FContext.Dialect.QuoteIdentifier(FKInfo.ColumnName));
+      SB.Append(') REFERENCES ');
+      
+      // Get the actual table name from the referenced type's Table attribute
+      var RefTable := FKInfo.ReferencedTable;
+      var RefTableName: string;
+      var Found := False;
+      
+      try
+        // Try to get from Context first (reliable if registered)
+        var RefSet := FContext.DataSet(FKInfo.ReferencedType);
+        if RefSet <> nil then
+        begin
+          RefTableName := RefSet.GetTableName; // Already quoted
+          Found := True;
+        end;
+      except
+        // Ignore if not found/registered yet
+      end;
+      
+      if not Found then
+      begin
+        var RefTypeInfo := FRttiContext.FindType(RefTable);
+        if RefTypeInfo <> nil then
+        begin
+          for var Attr in RefTypeInfo.GetAttributes do
+          begin
+            if Attr is TableAttribute then
+            begin
+              RefTable := TableAttribute(Attr).Name;
+              Break;
+            end;
+          end;
+        end;
+        
+        // Fallback: simple conversion if no Table attribute found
+        if RefTable = FKInfo.ReferencedTable then
+        begin
+          if RefTable.StartsWith('T') then
+            RefTable := RefTable.Substring(1);
+          RefTable := RefTable.ToLower + 's'; // Simple pluralization
+        end;
+        
+        RefTableName := FContext.Dialect.QuoteIdentifier(RefTable);
+      end;
+      
+      SB.Append(RefTableName);
+      SB.Append('(');
+      SB.Append(FContext.Dialect.QuoteIdentifier(FKInfo.ReferencedColumn));
+      SB.Append(')');
+      
+      // Add CASCADE actions if not NO ACTION
+      if FKInfo.OnDelete <> caNoAction then
+      begin
+        SB.Append(' ON DELETE ');
+        SB.Append(FContext.Dialect.GetCascadeActionSQL(FKInfo.OnDelete));
+      end;
+      
+      if FKInfo.OnUpdate <> caNoAction then
+      begin
+        SB.Append(' ON UPDATE ');
+        SB.Append(FContext.Dialect.GetCascadeActionSQL(FKInfo.OnUpdate));
+      end;
     end;
     
     SB.Append(')');

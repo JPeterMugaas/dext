@@ -65,7 +65,7 @@ type
     property Age: Integer read FAge write FAge;
     property Email: string read FEmail write FEmail;
 
-    [ForeignKey('AddressId')]
+    [ForeignKey('AddressId', caCascade)]  // CASCADE on delete
     property Address: TAddress read FAddress write FAddress;
   end;
 
@@ -148,6 +148,13 @@ begin
   WriteLn('🛠️  Creating Schema (EnsureCreated)...');
   Context.Entities<TAddress>;
   Context.Entities<TUser>;
+  
+  // Show generated SQL for TUser (with FK)
+  WriteLn;
+  WriteLn('DEBUG: Generated SQL for users table:');
+  WriteLn(Context.Entities<TUser>.GenerateCreateTableScript);
+  WriteLn;
+  
   Context.EnsureCreated;
 
   // 4. Insert Data

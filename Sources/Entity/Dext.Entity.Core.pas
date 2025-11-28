@@ -18,6 +18,7 @@ type
   IDbSet = interface
     ['{30000000-0000-0000-0000-000000000000}']
     function FindObject(const AId: Variant): TObject;
+    function GetTableName: string;
     function GenerateCreateTableScript: string;
   end;
 

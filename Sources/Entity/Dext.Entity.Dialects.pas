@@ -4,7 +4,8 @@ interface
 
 uses
   System.SysUtils,
-  System.TypInfo;
+  System.TypInfo,
+  Dext.Entity.Attributes;
 
 type
   /// <summary>
@@ -17,6 +18,7 @@ type
     function GeneratePaging(ASkip, ATake: Integer): string;
     function BooleanToSQL(AValue: Boolean): string;
     function GetColumnType(ATypeInfo: PTypeInfo; AIsAutoInc: Boolean = False): string;
+    function GetCascadeActionSQL(AAction: TCascadeAction): string;
   end;
 
   /// <summary>
@@ -29,6 +31,7 @@ type
     function GeneratePaging(ASkip, ATake: Integer): string; virtual; abstract;
     function BooleanToSQL(AValue: Boolean): string; virtual;
     function GetColumnType(ATypeInfo: PTypeInfo; AIsAutoInc: Boolean = False): string; virtual; abstract;
+    function GetCascadeActionSQL(AAction: TCascadeAction): string; virtual;
   end;
 
   /// <summary>
@@ -70,6 +73,18 @@ end;
 function TBaseDialect.QuoteIdentifier(const AName: string): string;
 begin
   Result := '"' + AName + '"';
+end;
+
+function TBaseDialect.GetCascadeActionSQL(AAction: TCascadeAction): string;
+begin
+  case AAction of
+    caNoAction: Result := 'NO ACTION';
+    caCascade:  Result := 'CASCADE';
+    caSetNull:  Result := 'SET NULL';
+    caRestrict: Result := 'RESTRICT';
+  else
+    Result := 'NO ACTION';
+  end;
 end;
 
 { TSQLiteDialect }
