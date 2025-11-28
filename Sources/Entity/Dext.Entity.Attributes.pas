@@ -35,6 +35,13 @@ type
   end;
 
   /// <summary>
+  ///   Marks a property as a version column for Optimistic Concurrency Control.
+  ///   The property must be of an integer type.
+  /// </summary>
+  VersionAttribute = class(TCustomAttribute)
+  end;
+
+  /// <summary>
   ///   Defines the cascade action for foreign key constraints.
   /// </summary>
   TCascadeAction = (

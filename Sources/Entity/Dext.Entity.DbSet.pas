@@ -40,9 +40,10 @@ type
     destructor Destroy; override;
     
     function FindObject(const AId: Variant): TObject;
+    procedure Add(const AEntity: TObject); overload;
     function GenerateCreateTableScript: string;
     
-    procedure Add(const AEntity: T);
+    procedure Add(const AEntity: T); overload;
     procedure Update(const AEntity: T);
     procedure Remove(const AEntity: T);
     function Find(const AId: Variant): T; overload;
@@ -385,6 +386,11 @@ begin
   Result := Find(AId);
 end;
 
+procedure TDbSet<T>.Add(const AEntity: TObject);
+begin
+  Add(T(AEntity));
+end;
+
 function TDbSet<T>.GenerateCreateTableScript: string;
 type
   TFKInfo = record
@@ -617,7 +623,29 @@ begin
           begin
             // Extract ID from related object
             if Val.IsObject and (Val.AsObject <> nil) then
-              Val := GetRelatedId(Val.AsObject)
+            begin
+              var RelatedObj := Val.AsObject;
+              var RelatedId := GetRelatedId(RelatedObj);
+              
+              // Check if ID is empty/zero (assuming int/string IDs)
+              var IsNew := False;
+              if RelatedId.IsEmpty then IsNew := True
+              else if RelatedId.Kind in [tkInteger, tkInt64] then IsNew := (RelatedId.AsInt64 = 0)
+              else if RelatedId.Kind in [tkString, tkUString, tkWString, tkLString] then IsNew := (RelatedId.AsString = '') or (RelatedId.AsString = '0');
+              
+              if IsNew then
+              begin
+                 // Cascade Insert
+                 var RelatedSet := FContext.DataSet(Prop.PropertyType.Handle);
+                 if RelatedSet <> nil then
+                 begin
+                   RelatedSet.Add(RelatedObj); // This will update RelatedObj ID
+                   RelatedId := GetRelatedId(RelatedObj); // Get new ID
+                 end;
+              end;
+              
+              Val := RelatedId;
+            end
             else
               Val := TValue.Empty; // NULL
           end;
@@ -716,9 +744,37 @@ var
   PKValue: TValue;
   First: Boolean;
   i: Integer;
+  VersionProp: TRttiProperty;
+  VersionColName: string;
+  OldVersionVal: TValue;
+  NewVersionVal: Integer;
 begin
   SB := TStringBuilder.Create;
   try
+    // 1. Find Version Property
+    VersionProp := nil;
+    VersionColName := '';
+    NewVersionVal := 0;
+    
+    for Pair in FColumns do
+    begin
+      Prop := FProps[Pair.Value.ToLower];
+      for var Attr in Prop.GetAttributes do
+        if Attr is VersionAttribute then
+        begin
+          VersionProp := Prop;
+          VersionColName := Pair.Value;
+          Break;
+        end;
+      if VersionProp <> nil then Break;
+    end;
+
+    if VersionProp <> nil then
+    begin
+      OldVersionVal := VersionProp.GetValue(Pointer(AEntity));
+      NewVersionVal := OldVersionVal.AsInteger + 1;
+    end;
+
     SB.Append('UPDATE ').Append(GetTableName).Append(' SET ');
     
     First := True;
@@ -751,6 +807,14 @@ begin
         .Append(FPKColumns[i]);
     end;
     
+    // Optimistic Concurrency Check
+    if VersionProp <> nil then
+    begin
+      SB.Append(' AND ')
+        .Append(FContext.Dialect.QuoteIdentifier(VersionColName))
+        .Append(' = :old_ver');
+    end;
+    
     Cmd := IDbCommand(FContext.Connection.CreateCommand(SB.ToString));
 
     // Bind Params (Update fields)
@@ -759,7 +823,12 @@ begin
       if FPKColumns.Contains(Pair.Value) then Continue;
       
       Prop := FProps[Pair.Value.ToLower];
-      Val := Prop.GetValue(Pointer(AEntity));
+      
+      // If Version column, use NewVersionVal
+      if (VersionProp <> nil) and (Pair.Value = VersionColName) then
+        Val := NewVersionVal
+      else
+        Val := Prop.GetValue(Pointer(AEntity));
 
       // Check for FK
       var IsFK := False;
@@ -771,24 +840,33 @@ begin
         if Val.IsObject and (Val.AsObject <> nil) then
           Val := GetRelatedId(Val.AsObject)
         else
-          Val := TValue.Empty;
+          Val := TValue.Empty; // NULL
       end;
-
+      
       Cmd.AddParam('p_' + Pair.Value, Val);
     end;
     
-    // Bind PK Params
+    // Bind PKs
     for i := 0 to FPKColumns.Count - 1 do
     begin
-      if not FProps.TryGetValue(FPKColumns[i].ToLower, Prop) then
-        raise Exception.Create('PK Property not found: ' + FPKColumns[i]);
-        
-      Val := Prop.GetValue(Pointer(AEntity));
-      Cmd.AddParam('pk_' + FPKColumns[i], Val);
+      var PKCol := FPKColumns[i];
+      var PKProp := FProps[PKCol.ToLower];
+      Cmd.AddParam('pk_' + PKCol, PKProp.GetValue(Pointer(AEntity)));
     end;
     
-    Cmd.ExecuteNonQuery;
+    // Bind Old Version
+    if VersionProp <> nil then
+      Cmd.AddParam('old_ver', OldVersionVal);
+      
+    var Rows := Cmd.ExecuteNonQuery;
     
+    if (VersionProp <> nil) and (Rows = 0) then
+      raise EOptimisticConcurrencyException.Create('Concurrency violation: Record has been modified by another user.');
+      
+    // Update object version if success
+    if VersionProp <> nil then
+      VersionProp.SetValue(Pointer(AEntity), NewVersionVal);
+      
   finally
     SB.Free;
   end;

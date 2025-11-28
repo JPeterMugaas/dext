@@ -11,6 +11,8 @@ uses
   Dext.Specifications.Interfaces;
 
 type
+  EOptimisticConcurrencyException = class(Exception);
+
   /// <summary>
   ///   Non-generic base interface for DbSets.
   ///   Allows access to DbSet operations without knowing the generic type at compile time.
@@ -18,6 +20,7 @@ type
   IDbSet = interface
     ['{30000000-0000-0000-0000-000000000000}']
     function FindObject(const AId: Variant): TObject;
+    procedure Add(const AEntity: TObject);
     function GetTableName: string;
     function GenerateCreateTableScript: string;
   end;
