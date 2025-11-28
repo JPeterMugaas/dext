@@ -302,6 +302,48 @@ begin
   end
   else
     WriteLn('   ❌ Failed to find OrderItem by Composite Key.');
+
+  // 9. Cascade Delete Test
+  WriteLn;
+  WriteLn('🧨 Testing Cascade Delete...');
+  
+  // Create a new Address and User linked to it
+  var NewAddr := TAddress.Create;
+  NewAddr.Street := '999 Cascade Blvd';
+  NewAddr.City := 'Destruction City';
+  Context.Entities<TAddress>.Add(NewAddr);
+  // Assuming ID 2 (since 1 was inserted before)
+  
+  // Insert User linked to Address 2 with explicit ID 99
+  FDConn.ExecSQL('INSERT INTO users (Id, full_name, Age, Email, AddressId) VALUES (99, ''Cascade Victim'', 99, ''victim@dext.com'', 2)');
+  
+  var Victim := Context.Entities<TUser>.Find(99); // Explicit ID
+  if Victim <> nil then
+    WriteLn('   User "Cascade Victim" created.')
+  else
+    WriteLn('   ❌ Failed to create victim user.');
+    
+  // Delete the Address
+  var AddrToDelete := Context.Entities<TAddress>.Find(2);
+  if AddrToDelete <> nil then
+  begin
+    Context.Entities<TAddress>.Remove(AddrToDelete);
+    WriteLn('   Address removed.');
+    
+    // Check if User is gone
+    // Note: We must clear IdentityMap or check DB directly because IdentityMap won't know about the cascade delete
+    // For this test, let's check DB count or try to find (if Find checks DB when not in map? No, Find checks Map first)
+    // But Victim IS in Map because we just found it.
+    // So Find(3) will return the instance even if DB row is gone.
+    // We need a way to check DB directly or bypass cache.
+    // Let's use SQL to check.
+    
+    var Count := FDConn.ExecSQLScalar('SELECT COUNT(*) FROM users WHERE Id = 99');
+    if Count = 0 then
+      WriteLn('   ✅ Cascade Delete Verified: User is gone from DB.')
+    else
+      WriteLn('   ❌ Cascade Delete Failed: User still exists in DB.');
+  end;
 end;
 
 begin
