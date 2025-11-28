@@ -4,7 +4,8 @@ interface
 
 uses
   Dext.Specifications.Base,
-  Dext.Specifications.Interfaces;
+  Dext.Specifications.Interfaces,
+  Dext.Specifications.OrderBy;
 
 type
   /// <summary>
@@ -20,9 +21,11 @@ type
     
     // Fluent methods
     function Where(const ACriterion: ICriterion): TSpecificationBuilder<T>;
-    function OrderBy(const APropertyName: string; AAscending: Boolean = True): TSpecificationBuilder<T>;
+    function OrderBy(const APropertyName: string; AAscending: Boolean = True): TSpecificationBuilder<T>; overload;
+    function OrderBy(const AOrderBy: IOrderBy): TSpecificationBuilder<T>; overload;
     function Skip(ACount: Integer): TSpecificationBuilder<T>;
     function Take(ACount: Integer): TSpecificationBuilder<T>;
+    function Include(const APath: string): TSpecificationBuilder<T>;
     
     property Spec: TSpecification<T> read GetSpec;
   end;
@@ -60,7 +63,15 @@ end;
 
 function TSpecificationBuilder<T>.OrderBy(const APropertyName: string; AAscending: Boolean): TSpecificationBuilder<T>;
 begin
-  // TODO: Implement OrderBy
+  // Create OrderBy using TOrderBy
+  GetSpec.AddOrderBy(TOrderBy.Create(APropertyName, AAscending));
+  Result := Self;
+end;
+
+// Overload accepting IOrderBy directly
+function TSpecificationBuilder<T>.OrderBy(const AOrderBy: IOrderBy): TSpecificationBuilder<T>;
+begin
+  GetSpec.AddOrderBy(AOrderBy);
   Result := Self;
 end;
 

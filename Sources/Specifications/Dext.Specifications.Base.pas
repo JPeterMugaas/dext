@@ -36,6 +36,7 @@ type
     procedure Where(const ACriteria: ICriterion); overload;
     procedure Where(const AExpr: TProp.TExpr); overload;
     procedure AddInclude(const APath: string);
+    procedure AddOrderBy(const AOrderBy: IOrderBy);
     procedure ApplyPaging(ASkip, ATake: Integer);
   end;
 
@@ -112,6 +113,11 @@ end;
 function TSpecification<T>.IsPagingEnabled: Boolean;
 begin
   Result := FIsPagingEnabled;
+end;
+
+procedure TSpecification<T>.AddOrderBy(const AOrderBy: IOrderBy);
+begin
+  FOrderBy.Add(AOrderBy);
 end;
 
 end.

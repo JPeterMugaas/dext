@@ -5,7 +5,8 @@ interface
 uses
   System.SysUtils,
   System.Rtti,
-  Dext.Specifications.Interfaces;
+  Dext.Specifications.Interfaces,
+  Dext.Specifications.OrderBy;
 
 type
   TAbstractCriterion = class(TInterfacedObject, ICriterion)
@@ -138,6 +139,10 @@ type
     
     // Between as a method (not operator) like Spring4D
     function Between(const Lower, Upper: Variant): ICriterion;
+    
+    // OrderBy support
+    function Asc: IOrderBy;
+    function Desc: IOrderBy;
   end;
 
 implementation
@@ -362,6 +367,16 @@ begin
   var LowerCrit: ICriterion := TBinaryCriterion.Create(FName, boGreaterThanOrEqual, TValue.FromVariant(Lower));
   var UpperCrit: ICriterion := TBinaryCriterion.Create(FName, boLessThanOrEqual, TValue.FromVariant(Upper));
   Result := TLogicalCriterion.Create(LowerCrit, UpperCrit, loAnd);
+end;
+
+function TProp.Asc: IOrderBy;
+begin
+  Result := TOrderBy.Create(FName, True);
+end;
+
+function TProp.Desc: IOrderBy;
+begin
+  Result := TOrderBy.Create(FName, False);
 end;
 
 end.

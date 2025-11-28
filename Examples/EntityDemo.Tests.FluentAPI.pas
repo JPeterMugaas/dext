@@ -122,7 +122,31 @@ begin
   FluentComplex.Free;
 
   Log('');
-  Log('📖 Available Fluent Operators:');
+  Log('� Test: OrderBy Tipado');
+  Log('------------------------');
+  
+  // OrderBy with Asc
+  var OrderedAsc := FContext.Entities<TUser>.List(
+    Specification.Where<TUser>(UserEntity.Age >= 18)
+      .OrderBy(UserEntity.Name.Asc)
+  );
+  LogSuccess(Format('✓ OrderBy Asc: Found %d user(s) ordered by Name ascending', [OrderedAsc.Count]));
+  if OrderedAsc.Count > 0 then
+    LogSuccess(Format('  First: %s', [OrderedAsc[0].Name]));
+  OrderedAsc.Free;
+  
+  // OrderBy with Desc
+  var OrderedDesc := FContext.Entities<TUser>.List(
+    Specification.Where<TUser>(UserEntity.Age >= 18)
+      .OrderBy(UserEntity.Age.Desc)
+  );
+  LogSuccess(Format('✓ OrderBy Desc: Found %d user(s) ordered by Age descending', [OrderedDesc.Count]));
+  if OrderedDesc.Count > 0 then
+    LogSuccess(Format('  First: %s (Age: %d)', [OrderedDesc[0].Name, OrderedDesc[0].Age]));
+  OrderedDesc.Free;
+
+  Log('');
+  Log('�📖 Available Fluent Operators:');
   Log('------------------------------');
   Log('');
   Log('🔢 Comparison Operators:');
