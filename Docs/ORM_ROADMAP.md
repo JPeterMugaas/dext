@@ -58,30 +58,33 @@ O objetivo é permitir consultas complexas de forma tipada e fluente.
 
 #### 🔄 Próximas Melhorias da Fluent API (Inspiradas em Spring4D/LINQ)
 
-- [ ] **Lazy Execution (Deferred Execution)**: Queries só executam quando iteradas
-  - Implementar `TQueryIterator<T>` baseado no padrão do Spring4D
-  - Queries retornam `IEnumerable<T>` que adia execução até `for..in` ou `.ToList()`
-  - *Benefício*: Performance - não executa queries desnecessárias
-  - *Exemplo*: `var query := Context.Entities<TUser>.Where(...); // Não executa ainda`
+- [x] **Lazy Execution (Deferred Execution)**: Queries só executam quando iteradas
+  - Implementado `TFluentQuery<T>` e iteradores customizados
+  - Queries retornam `TFluentQuery<T>` que adia execução até `for..in` ou `.ToList()`
+  - *Status*: ✅ **Implementado e Validado**
 
-- [ ] **Projeções (Select)**: Retornar apenas campos específicos
-  - `Select<TResult>(selector: TFunc<T, TResult>): IEnumerable<TResult>`
+- [x] **Projeções (Select)**: Retornar apenas campos específicos
+  - `Select<TResult>(selector: TFunc<T, TResult>): TFluentQuery<TResult>`
   - *Exemplo*: `Context.Entities<TUser>.Select<string>(u => u.Name).ToList()`
-  - Gerar SQL otimizado: `SELECT Name FROM users` em vez de `SELECT *`
+  - *Status*: ✅ **Implementado (Em memória)**
+  - *Futuro*: Otimizar SQL (`SELECT Name FROM users`)
 
-- [ ] **Agregações**: Funções de agregação tipadas
+- [x] **Agregações**: Funções de agregação tipadas
   - `Sum<TResult>(selector)`, `Average`, `Min`, `Max`
   - `Count()`, `Count(predicate)`, `Any()`, `Any(predicate)`
   - *Exemplo*: `var avgAge := Context.Entities<TUser>.Average(u => u.Age);`
+  - *Status*: ✅ **Implementado e Validado**
 
-- [ ] **Distinct**: Remover duplicatas
+- [x] **Distinct**: Remover duplicatas
   - `Distinct(): IEnumerable<T>`
   - *Exemplo*: `Context.Entities<TUser>.Select(u => u.City).Distinct()`
+  - *Status*: ✅ **Implementado e Validado**
 
-- [ ] **Paginação Helper**: Resultado paginado com metadados
+- [x] **Paginação Helper**: Resultado paginado com metadados
   - `Paginate(pageNumber, pageSize): IPagedResult<T>`
   - Retorna `TotalCount`, `PageCount`, `HasNextPage`, `HasPreviousPage`
   - *Exemplo*: `var page := Context.Entities<TUser>.Paginate(1, 20);`
+  - *Status*: ✅ **Implementado e Validado**
 
 - [ ] **GroupBy**: Agrupamento com agregações
   - `GroupBy<TKey>(keySelector): IEnumerable<IGrouping<TKey, T>>`

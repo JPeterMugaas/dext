@@ -12,7 +12,8 @@ uses
   EntityDemo.Tests.CRUD in 'EntityDemo.Tests.CRUD.pas',
   EntityDemo.Tests.FluentAPI in 'EntityDemo.Tests.FluentAPI.pas',
   EntityDemo.Tests.LazyExecution in 'EntityDemo.Tests.LazyExecution.pas',
-  EntityDemo.Tests.Relationships in 'EntityDemo.Tests.Relationships.pas';
+  EntityDemo.Tests.Relationships in 'EntityDemo.Tests.Relationships.pas',
+  EntityDemo.Tests.AdvancedQuery in 'EntityDemo.Tests.AdvancedQuery.pas';
 
 
 procedure RunAllTests;
@@ -24,6 +25,7 @@ var
   ConcTest: TConcurrencyTest;
   FluentTest: TFluentAPITest;
   LazyTest: TLazyExecutionTest;
+  AdvQueryTest: TAdvancedQueryTest;
 begin
   WriteLn('🚀 Dext Entity ORM Demo Suite');
   WriteLn('=============================');
@@ -76,6 +78,13 @@ begin
     LazyTest.Run;
   finally
     LazyTest.Free;
+  end;
+
+  AdvQueryTest := TAdvancedQueryTest.Create;
+  try
+    AdvQueryTest.Run;
+  finally
+    AdvQueryTest.Free;
   end;
   
   WriteLn('✨ All tests completed.');

@@ -1,39 +1,31 @@
 unit Dext.Persistence;
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses
-  // Re-export commonly used units for convenience
-  Dext.Entity,
-  Dext.Entity.Attributes,
   Dext.Entity.Core,
-  Dext.Specifications.Base,
-  Dext.Specifications.Criteria,
-  Dext.Specifications.Fluent,
+  Dext.Entity.DbSet,
+  Dext.Entity.Query,
   Dext.Specifications.Interfaces,
-  Dext.Specifications.Types;
+  Dext.Specifications.Fluent;
 
 type
-  // Alias common types to avoid lengthy uses clauses
-  TDbContext = Dext.Entity.TDbContext;
+  // Core Interfaces
+  IDbContext = Dext.Entity.Core.IDbContext;
+  IDbSet = Dext.Entity.Core.IDbSet;
   
-  // TProp for fluent queries
-  TProp = Dext.Specifications.Types.TProp;
-  
-  // Fluent Specification builder
-  Specification = Dext.Specifications.Fluent.Specification;
-  
-  // Attributes
-  TableAttribute = Dext.Entity.Attributes.TableAttribute;
-  ColumnAttribute = Dext.Entity.Attributes.ColumnAttribute;
-  PKAttribute = Dext.Entity.Attributes.PKAttribute;
-  AutoIncAttribute = Dext.Entity.Attributes.AutoIncAttribute;
-  ForeignKeyAttribute = Dext.Entity.Attributes.ForeignKeyAttribute;
-  VersionAttribute = Dext.Entity.Attributes.VersionAttribute;
-  NotMappedAttribute = Dext.Entity.Attributes.NotMappedAttribute;
+  // Exceptions
+  EOptimisticConcurrencyException = Dext.Entity.Core.EOptimisticConcurrencyException;
 
-  // Enums
-  TCascadeAction = Dext.Entity.Attributes.TCascadeAction;
+
+  ICriterion = Dext.Specifications.Interfaces.ICriterion;
+  
+  // Specification Builder Helper (Static Class)
+  Specification = Dext.Specifications.Fluent.Specification;
 
 implementation
 

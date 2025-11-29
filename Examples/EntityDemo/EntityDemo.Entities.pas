@@ -30,6 +30,7 @@ type
     FName: string;
     FAge: Integer;
     FEmail: string;
+    FCity: string;
     FAddressId: Integer;
     FAddress: TAddress;
   public
@@ -41,6 +42,7 @@ type
 
     property Age: Integer read FAge write FAge;
     property Email: string read FEmail write FEmail;
+    property City: string read FCity write FCity;
     
     [Column('address_id')]
     property AddressId: Integer read FAddressId write FAddressId;

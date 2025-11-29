@@ -149,7 +149,8 @@ begin
   // Test 7: Where (Filtering)
   Log('🔍 Test 7: Where (Filtering)');
   Log('---------------------------');
-  var FilteredQuery := FContext.Entities<TUser>
+  var FilteredQuery := FContext
+    .Entities<TUser>
     .Query()
     .Where(function(U: TUser): Boolean
       begin
