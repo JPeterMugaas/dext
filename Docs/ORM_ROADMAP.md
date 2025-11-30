@@ -53,8 +53,10 @@ O objetivo é permitir consultas complexas de forma tipada e fluente.
   - Null: `IsNull`, `IsNotNull`
   - Lógicos: `and`, `or`, `not`
 - [x] **OrderBy Tipado**: `UserEntity.Name.Asc`, `UserEntity.Age.Desc`
-- [ ] **Include (Eager Loading)**: Carregamento antecipado de relacionamentos.
-  - *Parcialmente implementado, precisa validação completa*
+- [x] **Include (Eager Loading)**: Carregamento antecipado de relacionamentos.
+  - *Status*: ✅ **Implementado e Validado**
+  - *Implementado*: `DoLoadIncludes`, API fluente `Specification.Include('Path')`, suporte a `IN` no SQL Generator
+  - *Exemplo*: `Specification.All<TUser>.Include('Address')`
 
 #### 🔄 Próximas Melhorias da Fluent API (Inspiradas em Spring4D/LINQ)
 
@@ -86,13 +88,29 @@ O objetivo é permitir consultas complexas de forma tipada e fluente.
   - *Exemplo*: `var page := Context.Entities<TUser>.Paginate(1, 20);`
   - *Status*: ✅ **Implementado e Validado**
 
-- [ ] **GroupBy**: Agrupamento com agregações
+- [x] **GroupBy**: Agrupamento com agregações
   - `GroupBy<TKey>(keySelector): IEnumerable<IGrouping<TKey, T>>`
   - *Exemplo*: `Context.Entities<TUser>.GroupBy(u => u.City)`
+  - *Status*: ✅ **Implementado e Validado**
 
-- [ ] **Join Explícito**: Joins tipados
+- [x] **Join Explícito**: Joins tipados
   - `Join<TInner, TKey, TResult>(inner, outerKey, innerKey, resultSelector)`
   - *Exemplo*: `users.Join(addresses, u => u.AddressId, a => a.Id, ...)`
+  - *Status*: ✅ **Implementado e Validado** (Em memória)
+
+#### 🚀 Otimizações de Performance
+
+- [x] **FirstOrDefault Otimizado**: Usa `LIMIT 1` no SQL
+  - Ao invés de carregar todos os registros e pegar o primeiro
+  - SQL gerado: `SELECT * FROM users WHERE age > 18 LIMIT 1`
+  - *Status*: ✅ **Implementado e Validado**
+  - *Benefício*: Performance significativa em queries grandes
+
+- [x] **Any Otimizado**: Usa `SELECT 1 ... LIMIT 1` ao invés de `COUNT(*)`
+  - Para na primeira ocorrência ao invés de contar todos os registros
+  - SQL gerado: `SELECT 1 FROM users WHERE age > 18 LIMIT 1`
+  - *Status*: ✅ **Implementado e Validado**
+  - *Benefício*: Performance dramática em verificações de existência
 
 ### 📦 Fase 4: Loading Strategies & Memory Management
 Melhorar como os dados relacionados são carregados e gerenciar ciclo de vida das entidades.

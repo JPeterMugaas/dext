@@ -862,27 +862,99 @@ end;
 
 function TDbSet<T>.FirstOrDefault(const ASpec: ISpecification<T>): T;
 var
-  ListResult: TList<T>;
+  Generator: TSQLWhereGenerator;
+  SQL: TStringBuilder;
+  WhereClause: string;
+  Cmd: IDbCommand;
+  Reader: IDbReader;
+  Param: TPair<string, TValue>;
 begin
-  // Optimization: Apply Take(1) to Spec if not already paging?
-  // For now, just fetch list and take first.
-  ListResult := List(ASpec);
+  Result := nil;
+  Generator := TSQLWhereGenerator.Create(FContext.Dialect);
+  SQL := TStringBuilder.Create;
   try
-    if ListResult.Count > 0 then
+    SQL.Append('SELECT * FROM ').Append(GetTableName);
+    
+    // 1. Generate WHERE
+    if ASpec.GetCriteria <> nil then
     begin
-      Result := ListResult[0];
-      ListResult.Extract(Result); // Prevent freeing by List
-    end
-    else
-      Result := nil;
+      WhereClause := Generator.Generate(ASpec.GetCriteria);
+      if WhereClause <> '' then
+        SQL.Append(' WHERE ').Append(WhereClause);
+    end;
+    
+    // 2. Generate ORDER BY
+    if Length(ASpec.GetOrderBy) > 0 then
+    begin
+      SQL.Append(' ORDER BY ');
+      for var i := 0 to Length(ASpec.GetOrderBy) - 1 do
+      begin
+        if i > 0 then SQL.Append(', ');
+        SQL.Append(ASpec.GetOrderBy[i].GetPropertyName);
+        if not ASpec.GetOrderBy[i].GetAscending then
+          SQL.Append(' DESC');
+      end;
+    end;
+    
+    // 3. OPTIMIZATION: Always add LIMIT 1
+    SQL.Append(' ').Append(FContext.Dialect.GeneratePaging(0, 1));
+    
+    // 4. Execute
+    Cmd := FContext.Connection.CreateCommand(SQL.ToString) as IDbCommand;
+    
+    for Param in Generator.Params do
+      Cmd.AddParam(Param.Key, Param.Value);
+      
+    Reader := Cmd.ExecuteQuery;
+    if Reader.Next then
+      Result := Hydrate(Reader);
+      
+    // Note: Include is not supported for FirstOrDefault (would need to load the single entity's includes)
+    // If needed in the future, can call DoLoadIncludes with a single-item list
+      
   finally
-    ListResult.Free;
+    SQL.Free;
+    Generator.Free;
   end;
 end;
 
 function TDbSet<T>.Any(const ASpec: ISpecification<T>): Boolean;
+var
+  Generator: TSQLWhereGenerator;
+  SQL: TStringBuilder;
+  WhereClause: string;
+  Cmd: IDbCommand;
+  Reader: IDbReader;
+  Param: TPair<string, TValue>;
 begin
-  Result := Count(ASpec) > 0;
+  // OPTIMIZATION: Use LIMIT 1 instead of COUNT(*)
+  // This stops at the first match instead of counting all records
+  Generator := TSQLWhereGenerator.Create(FContext.Dialect);
+  SQL := TStringBuilder.Create;
+  try
+    SQL.Append('SELECT 1 FROM ').Append(GetTableName);
+    
+    // Generate WHERE clause
+    if ASpec.GetCriteria <> nil then
+    begin
+      WhereClause := Generator.Generate(ASpec.GetCriteria);
+      if WhereClause <> '' then
+        SQL.Append(' WHERE ').Append(WhereClause);
+    end;
+    
+    // Add LIMIT 1 for early termination
+    SQL.Append(' ').Append(FContext.Dialect.GeneratePaging(0, 1));
+    
+    Cmd := FContext.Connection.CreateCommand(SQL.ToString) as IDbCommand;
+    for Param in Generator.Params do
+      Cmd.AddParam(Param.Key, Param.Value);
+      
+    Reader := Cmd.ExecuteQuery;
+    Result := Reader.Next; // True if at least one record exists
+  finally
+    SQL.Free;
+    Generator.Free;
+  end;
 end;
 
 function TDbSet<T>.Count(const ASpec: ISpecification<T>): Integer;

@@ -126,21 +126,77 @@ end;
 procedure TSQLWhereGenerator.ProcessBinary(const C: TBinaryCriterion);
 var
   ParamName: string;
+  ArrayValue: TValue;
+  I: Integer;
+  ParamNames: TStringBuilder;
 begin
-  ParamName := GetNextParamName;
-  
-  // Store parameter value
-  FParams.Add(ParamName, C.Value);
-  
-  // Generate SQL: (Column Op :Param)
-  FSQL.Append('(')
-      .Append(FDialect.QuoteIdentifier(C.PropertyName))
-      .Append(' ')
-      .Append(GetBinaryOpSQL(C.Operator))
-      .Append(' :')
-      .Append(ParamName)
-      .Append(')');
+  // Special handling for IN and NOT IN operators
+  if (C.Operator = boIn) or (C.Operator = boNotIn) then
+  begin
+    ArrayValue := C.Value;
+    
+    // Check if value is an array
+    if ArrayValue.IsArray then
+    begin
+      ParamNames := TStringBuilder.Create;
+      try
+        // Generate parameter for each array element
+        for I := 0 to ArrayValue.GetArrayLength - 1 do
+        begin
+          ParamName := GetNextParamName;
+          FParams.Add(ParamName, ArrayValue.GetArrayElement(I));
+          
+          if I > 0 then
+            ParamNames.Append(', ');
+          ParamNames.Append(':').Append(ParamName);
+        end;
+        
+        // Generate SQL: (Column IN (:p1, :p2, :p3))
+        FSQL.Append('(')
+            .Append(FDialect.QuoteIdentifier(C.PropertyName))
+            .Append(' ')
+            .Append(GetBinaryOpSQL(C.Operator))
+            .Append(' (')
+            .Append(ParamNames.ToString)
+            .Append('))');
+      finally
+        ParamNames.Free;
+      end;
+    end
+    else
+    begin
+      // Fallback: treat as single value (shouldn't happen, but just in case)
+      ParamName := GetNextParamName;
+      FParams.Add(ParamName, C.Value);
+      
+      FSQL.Append('(')
+          .Append(FDialect.QuoteIdentifier(C.PropertyName))
+          .Append(' ')
+          .Append(GetBinaryOpSQL(C.Operator))
+          .Append(' (:')
+          .Append(ParamName)
+          .Append('))');
+    end;
+  end
+  else
+  begin
+    // Standard binary operator handling
+    ParamName := GetNextParamName;
+    
+    // Store parameter value
+    FParams.Add(ParamName, C.Value);
+    
+    // Generate SQL: (Column Op :Param)
+    FSQL.Append('(')
+        .Append(FDialect.QuoteIdentifier(C.PropertyName))
+        .Append(' ')
+        .Append(GetBinaryOpSQL(C.Operator))
+        .Append(' :')
+        .Append(ParamName)
+        .Append(')');
+  end;
 end;
+
 
 procedure TSQLWhereGenerator.ProcessLogical(const C: TLogicalCriterion);
 begin

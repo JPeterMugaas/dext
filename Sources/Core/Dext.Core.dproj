@@ -195,6 +195,8 @@
         <DCCReference Include="..\Entity\Dext.Entity.pas"/>
         <DCCReference Include="..\Entity\Dext.Persistence.pas"/>
         <DCCReference Include="..\Entity\Dext.Entity.Query.pas"/>
+        <DCCReference Include="..\Entity\Dext.Entity.Grouping.pas"/>
+        <DCCReference Include="..\Entity\Dext.Entity.Joining.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

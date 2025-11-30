@@ -7,11 +7,14 @@ unit Dext.Persistence;
 interface
 
 uses
+  System.SysUtils,
   Dext.Entity.Core,
   Dext.Entity.DbSet,
   Dext.Entity.Query,
   Dext.Specifications.Interfaces,
-  Dext.Specifications.Fluent;
+  Dext.Specifications.Fluent,
+  Dext.Entity.Grouping,
+  Dext.Entity.Joining;
 
 type
   // Core Interfaces
@@ -26,6 +29,10 @@ type
   
   // Specification Builder Helper (Static Class)
   Specification = Dext.Specifications.Fluent.Specification;
+
+  // Query Helpers
+  TQueryGrouping = Dext.Entity.Grouping.TQuery;
+  TQueryJoin = Dext.Entity.Joining.TJoining;
 
 implementation
 

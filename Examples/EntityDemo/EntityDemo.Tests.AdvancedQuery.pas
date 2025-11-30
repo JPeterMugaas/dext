@@ -1,4 +1,4 @@
-unit EntityDemo.Tests.AdvancedQuery;
+﻿unit EntityDemo.Tests.AdvancedQuery;
 
 interface
 
@@ -8,6 +8,10 @@ uses
   Dext.Entity,
   Dext.Entity.Query,
   Dext.Entity.Grouping,
+  Dext.Entity.Joining,
+  Dext.Persistence,
+  Dext.Specifications.Interfaces,
+  Dext.Specifications.Fluent,
   EntityDemo.Entities,
   EntityDemo.Tests.Base;
 
@@ -19,6 +23,8 @@ type
     procedure TestDistinct;
     procedure TestPagination;
     procedure TestGroupBy;
+    procedure TestJoin;
+    procedure TestInclude;
   end;
 
 implementation
@@ -30,6 +36,8 @@ begin
   TestDistinct;
   TestPagination;
   TestGroupBy;
+  TestJoin;
+  TestInclude;
   Log('');
 end;
 
@@ -203,6 +211,123 @@ begin
     end;
   finally
     Grouped.Free; // This frees the chain
+  end;
+end;
+
+procedure TAdvancedQueryTest.TestJoin;
+var
+  Users: TFluentQuery<TUser>;
+  Addresses: TFluentQuery<TAddress>;
+  Joined: TFluentQuery<string>;
+  Results: TList<string>;
+  U1, U2, U3: TUser;
+  A1, A2: TAddress;
+  OuterKeyFunc: TFunc<TUser, Integer>;
+  InnerKeyFunc: TFunc<TAddress, Integer>;
+  ResultFunc: TFunc<TUser, TAddress, string>;
+begin
+  Log('   Testing Join...');
+  
+  // Reset context to have clean state
+  TearDown;
+  Setup;
+
+  // Setup data
+  A1 := TAddress.Create; A1.Street := 'Street 1'; FContext.Entities<TAddress>.Add(A1);
+  A2 := TAddress.Create; A2.Street := 'Street 2'; FContext.Entities<TAddress>.Add(A2);
+  
+  U1 := TUser.Create; U1.Name := 'User 1'; U1.AddressId := A1.Id; FContext.Entities<TUser>.Add(U1);
+  U2 := TUser.Create; U2.Name := 'User 2'; U2.AddressId := A2.Id; FContext.Entities<TUser>.Add(U2);
+  U3 := TUser.Create; U3.Name := 'User 3'; U3.AddressId := 999; FContext.Entities<TUser>.Add(U3); // No match
+  
+  Users := FContext.Entities<TUser>.Query;
+  Addresses := FContext.Entities<TAddress>.Query;
+  
+  OuterKeyFunc := function(U: TUser): Integer begin Result := U.AddressId; end;
+  InnerKeyFunc := function(A: TAddress): Integer begin Result := A.Id; end;
+  ResultFunc := function(U: TUser; A: TAddress): string begin Result := U.Name + ' - ' + A.Street; end;
+  
+  Joined := Dext.Entity.Joining.TJoining.Join<TUser, TAddress, Integer, string>(
+    Users,
+    Addresses,
+    OuterKeyFunc,
+    InnerKeyFunc,
+    ResultFunc
+  );
+  
+  Results := Joined.ToList;
+  try
+    AssertTrue(Results.Count = 2, 'Should have 2 joined results', Format('Found %d', [Results.Count]));
+    if Results.Count = 2 then
+    begin
+      AssertTrue(Results.Contains('User 1 - Street 1'), 'User 1 - Street 1', 'Should contain User 1 - Street 1');
+      AssertTrue(Results.Contains('User 2 - Street 2'), 'User 2 - Street 2', 'Should contain User 2 - Street 2');
+    end;
+  finally
+    Results.Free;
+  end;
+end;
+
+procedure TAdvancedQueryTest.TestInclude;
+var
+  Users: TList<TUser>;
+  U1, U2: TUser;
+  A1, A2: TAddress;
+  Spec: ISpecification<TUser>;
+  Builder: TSpecificationBuilder<TUser>;
+begin
+  Log('   Testing Include (Eager Loading)...');
+  
+  // Reset context
+  TearDown;
+  Setup;
+
+  // Setup data: Create addresses first
+  A1 := TAddress.Create; 
+  A1.Street := 'Main Street'; 
+  A1.City := 'New York';
+  FContext.Entities<TAddress>.Add(A1);
+  
+  A2 := TAddress.Create; 
+  A2.Street := 'Second Avenue'; 
+  A2.City := 'Los Angeles';
+  FContext.Entities<TAddress>.Add(A2);
+  
+  // Create users with addresses
+  U1 := TUser.Create; 
+  U1.Name := 'John'; 
+  U1.AddressId := A1.Id; 
+  FContext.Entities<TUser>.Add(U1);
+  
+  U2 := TUser.Create; 
+  U2.Name := 'Jane'; 
+  U2.AddressId := A2.Id; 
+  FContext.Entities<TUser>.Add(U2);
+  
+  // Test: Load users with Include('Address')
+  Builder := Specification.All<TUser>;
+  Spec := Builder.Include('Address');
+  Users := FContext.Entities<TUser>.List(Spec);
+  
+  try
+    AssertTrue(Users.Count = 2, 'Should have 2 users', Format('Found %d', [Users.Count]));
+    
+    // Verify that Address navigation property is loaded
+    if Users.Count >= 1 then
+    begin
+      AssertTrue(Users[0].Address <> nil, 'User 1 Address should be loaded', 'User 1 Address is nil');
+      if Users[0].Address <> nil then
+        AssertTrue(Users[0].Address.Street = 'Main Street', 'User 1 should live on Main Street', Format('Found: %s', [Users[0].Address.Street]));
+    end;
+    
+    if Users.Count >= 2 then
+    begin
+      AssertTrue(Users[1].Address <> nil, 'User 2 Address should be loaded', 'User 2 Address is nil');
+      if Users[1].Address <> nil then
+        AssertTrue(Users[1].Address.Street = 'Second Avenue', 'User 2 should live on Second Avenue', Format('Found: %s', [Users[1].Address.Street]));
+    end;
+  finally
+    Users.Free;
   end;
 end;
 
