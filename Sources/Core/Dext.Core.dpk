@@ -108,7 +108,7 @@ contains
   Dext.Core.Memory in 'Dext.Core.Memory.pas',
   Dext.Core.ValueConverters in 'Dext.Core.ValueConverters.pas',
   Dext.Specifications.Base in '..\Specifications\Dext.Specifications.Base.pas',
-  Dext.Specifications.Criteria in '..\Specifications\Dext.Specifications.Criteria.pas',
+  Dext.Specifications.Expression in '..\Specifications\Dext.Specifications.Expression.pas',
   Dext.Specifications.Fluent in '..\Specifications\Dext.Specifications.Fluent.pas',
   Dext.Specifications.Interfaces in '..\Specifications\Dext.Specifications.Interfaces.pas',
   Dext.Specifications.OrderBy in '..\Specifications\Dext.Specifications.OrderBy.pas',

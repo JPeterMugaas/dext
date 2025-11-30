@@ -26,7 +26,7 @@ type
     function GenerateCreateTableScript: string;
     
     // Non-generic query support
-    function ListObjects(const ACriterion: ICriterion): TList<TObject>;
+    function ListObjects(const AExpression: IExpression): TList<TObject>;
   end;
 
   /// <summary>
@@ -60,11 +60,11 @@ type
     function Any(const ASpec: ISpecification<T>): Boolean; overload;
     function Count(const ASpec: ISpecification<T>): Integer; overload;
     
-    // Inline Queries (aceita ICriterion diretamente)
-    function List(const ACriterion: ICriterion): TList<T>; overload;
-    function FirstOrDefault(const ACriterion: ICriterion): T; overload;
-    function Any(const ACriterion: ICriterion): Boolean; overload;
-    function Count(const ACriterion: ICriterion): Integer; overload;
+    // Inline Queries (aceita IExpression diretamente)
+    function List(const AExpression: IExpression): TList<T>; overload;
+    function FirstOrDefault(const AExpression: IExpression): T; overload;
+    function Any(const AExpression: IExpression): Boolean; overload;
+    function Count(const AExpression: IExpression): Integer; overload;
     
     // Lazy Queries (Deferred Execution) - Returns TFluentQuery<T>
     /// <summary>
@@ -72,7 +72,7 @@ type
     ///   Call .ToList() to force execution and materialize results.
     /// </summary>
     function Query(const ASpec: ISpecification<T>): TFluentQuery<T>; overload;
-    function Query(const ACriterion: ICriterion): TFluentQuery<T>; overload;
+    function Query(const AExpression: IExpression): TFluentQuery<T>; overload;
     function Query: TFluentQuery<T>; overload; // All records (lazy)
   end;
 

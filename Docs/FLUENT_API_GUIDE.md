@@ -68,18 +68,18 @@ not (UserEntity.Age = 25)
 // Em EntityDemo.Entities.pas
 UserEntity = class
 public
-  class var Id: TProp;
-  class var Name: TProp;
-  class var Age: TProp;
+  class var Id: TProperty;
+  class var Name: TProperty;
+  class var Age: TProperty;
   
   class constructor Create;
 end;
 
 class constructor UserEntity.Create;
 begin
-  Id := TProp.Create('Id');
-  Name := TProp.Create('Name');
-  Age := TProp.Create('Age');
+  Id := TProperty.Create('Id');
+  Name := TProperty.Create('Name');
+  Age := TProperty.Create('Age');
 end;
 ```
 

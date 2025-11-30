@@ -1,4 +1,4 @@
-unit Dext.Specifications.Criteria;
+unit Dext.Specifications.Expression;
 
 interface
 
@@ -11,13 +11,13 @@ uses
 /// <summary>
 ///   Global helper to create a property expression.
 /// </summary>
-function Prop(const AName: string): TProp;
+function Prop(const AName: string): TProperty;
 
 implementation
 
-function Prop(const AName: string): TProp;
+function Prop(const AName: string): TProperty;
 begin
-  Result := TProp.Create(AName);
+  Result := TProperty.Create(AName);
 end;
 
 end.

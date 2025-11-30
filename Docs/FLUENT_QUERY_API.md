@@ -18,7 +18,7 @@ end;
 
 ## 🔍 Filtragem (Where)
 
-Você pode filtrar usando um predicado (`TFunc<T, Boolean>`) ou um `ICriterion` (Specification).
+Você pode filtrar usando um predicado (`TFunc<T, Boolean>`) ou um `IExpression` (Specification).
 
 ### Usando Predicado (Lambda/Anonymous Method)
 ```delphi
@@ -28,7 +28,7 @@ Users.Where(function(U: TUser): Boolean
   end);
 ```
 
-### Usando Specification (ICriterion)
+### Usando Specification (IExpression)
 A forma mais limpa e recomendada, usando metadados gerados (Helpers):
 ```delphi
 // Assumindo que UserEntity é um helper gerado para as propriedades de TUser

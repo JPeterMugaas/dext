@@ -14,7 +14,7 @@ type
   /// </summary>
   TSpecification<T> = class(TInterfacedObject, ISpecification<T>)
   protected
-    FCriteria: ICriterion;
+    FExpression: IExpression;
     FIncludes: TList<string>;
     FOrderBy: TList<IOrderBy>;
     FSkip: Integer;
@@ -24,7 +24,7 @@ type
     FSelectedColumns: TList<string>;
     
     // Implementation of ISpecification<T>
-    function GetCriteria: ICriterion;
+    function GetExpression: IExpression;
     function GetIncludes: TArray<string>;
     function GetOrderBy: TArray<IOrderBy>;
     function GetSkip: Integer;
@@ -36,8 +36,8 @@ type
     destructor Destroy; override;
     
     // Fluent Builders (public for TSpecificationBuilder)
-    procedure Where(const ACriteria: ICriterion); overload;
-    procedure Where(const AExpr: TProp.TExpr); overload;
+    procedure Where(const AExpression: IExpression); overload;
+    procedure Where(const AExpr: TProperty.TExpression); overload;
     procedure AddInclude(const APath: string);
     procedure AddOrderBy(const AOrderBy: IOrderBy);
     procedure ApplyPaging(ASkip, ATake: Integer);
@@ -54,7 +54,7 @@ begin
   FIncludes := TList<string>.Create;
   FSelectedColumns := TList<string>.Create;
   FOrderBy := TList<IOrderBy>.Create;
-  FCriteria := nil; // Empty criteria matches all
+  FExpression := nil; // Empty expression matches all
 end;
 
 destructor TSpecification<T>.Destroy;
@@ -65,18 +65,18 @@ begin
   inherited;
 end;
 
-procedure TSpecification<T>.Where(const ACriteria: ICriterion);
+procedure TSpecification<T>.Where(const AExpression: IExpression);
 begin
-  if FCriteria = nil then
-    FCriteria := ACriteria
+  if FExpression = nil then
+    FExpression := AExpression
   else
     // Combine with AND
-    FCriteria := TLogicalCriterion.Create(FCriteria, ACriteria, loAnd);
+    FExpression := TLogicalExpression.Create(FExpression, AExpression, loAnd);
 end;
 
-procedure TSpecification<T>.Where(const AExpr: TProp.TExpr);
+procedure TSpecification<T>.Where(const AExpr: TProperty.TExpression);
 begin
-  Where(ICriterion(AExpr));
+  Where(IExpression(AExpr));
 end;
 
 procedure TSpecification<T>.AddInclude(const APath: string);
@@ -91,9 +91,9 @@ begin
   FIsPagingEnabled := True;
 end;
 
-function TSpecification<T>.GetCriteria: ICriterion;
+function TSpecification<T>.GetExpression: IExpression;
 begin
-  Result := FCriteria;
+  Result := FExpression;
 end;
 
 function TSpecification<T>.GetIncludes: TArray<string>;

@@ -9,7 +9,7 @@ uses
   Dext.Specifications.OrderBy;
 
 type
-  TAbstractCriterion = class(TInterfacedObject, ICriterion)
+  TAbstractExpression = class(TInterfacedObject, IExpression)
   public
     function ToString: string; override;
   end;
@@ -21,7 +21,7 @@ type
   TBinaryOperator = (boEqual, boNotEqual, boGreaterThan, boGreaterThanOrEqual, 
     boLessThan, boLessThanOrEqual, boLike, boNotLike, boIn, boNotIn);
 
-  TBinaryCriterion = class(TAbstractCriterion)
+  TBinaryExpression = class(TAbstractExpression)
   private
     FPropertyName: string;
     FValue: TValue;
@@ -39,15 +39,15 @@ type
   /// </summary>
   TLogicalOperator = (loAnd, loOr);
 
-  TLogicalCriterion = class(TAbstractCriterion)
+  TLogicalExpression = class(TAbstractExpression)
   private
-    FLeft: ICriterion;
-    FRight: ICriterion;
+    FLeft: IExpression;
+    FRight: IExpression;
     FOperator: TLogicalOperator;
   public
-    constructor Create(const ALeft, ARight: ICriterion; AOperator: TLogicalOperator);
-    property Left: ICriterion read FLeft;
-    property Right: ICriterion read FRight;
+    constructor Create(const ALeft, ARight: IExpression; AOperator: TLogicalOperator);
+    property Left: IExpression read FLeft;
+    property Right: IExpression read FRight;
     property LogicalOperator: TLogicalOperator read FOperator;
     function ToString: string; override;
   end;
@@ -57,16 +57,16 @@ type
   /// </summary>
   TUnaryOperator = (uoNot, uoIsNull, uoIsNotNull);
 
-  TUnaryCriterion = class(TAbstractCriterion)
+  TUnaryExpression = class(TAbstractExpression)
   private
-    FCriterion: ICriterion; // For NOT
+    FExpression: IExpression; // For NOT
     FPropertyName: string;  // For IsNull/IsNotNull
     FOperator: TUnaryOperator;
   public
-    constructor Create(const ACriterion: ICriterion); overload; // For NOT
+    constructor Create(const AExpression: IExpression); overload; // For NOT
     constructor Create(const APropertyName: string; AOperator: TUnaryOperator); overload; // For IsNull
     
-    property Criterion: ICriterion read FCriterion;
+    property Expression: IExpression read FExpression;
     property PropertyName: string read FPropertyName;
     property UnaryOperator: TUnaryOperator read FOperator;
     function ToString: string; override;
@@ -75,7 +75,7 @@ type
   /// <summary>
   ///   Represents a constant value (True/False) for always matching/not matching.
   /// </summary>
-  TConstantCriterion = class(TAbstractCriterion)
+  TConstantExpression = class(TAbstractExpression)
   private
     FValue: Boolean;
   public
@@ -85,27 +85,27 @@ type
   end;
 
   /// <summary>
-  ///   Helper record to build criteria expressions fluently.
-  ///   Usage: Prop('Age') > 18
+  ///   Helper record to build expressions fluently.
+  ///   Usage: Property('Age') > 18
   /// </summary>
-  TProp = record
+  TProperty = record
   public
     type
       /// <summary>
-      ///   Represents an intermediate expression in the criteria tree.
-      ///   Has implicit conversion to ICriterion.
+      ///   Represents an intermediate expression in the expression tree.
+      ///   Has implicit conversion to IExpression.
       /// </summary>
-      TExpr = record
+      TExpression = record
       private
-        FCriterion: ICriterion;
+        FExpression: IExpression;
       public
-        class operator Implicit(const Value: ICriterion): TExpr;
-        class operator Implicit(const Value: TExpr): ICriterion;
+        class operator Implicit(const Value: IExpression): TExpression;
+        class operator Implicit(const Value: TExpression): IExpression;
         
-        // Logical Operators (AND, OR, NOT) - return ICriterion like Spring4D
-        class operator LogicalAnd(const Left, Right: TExpr): ICriterion;
-        class operator LogicalOr(const Left, Right: TExpr): ICriterion;
-        class operator LogicalNot(const Value: TExpr): ICriterion;
+        // Logical Operators (AND, OR, NOT) - return IExpression like Spring4D
+        class operator LogicalAnd(const Left, Right: TExpression): IExpression;
+        class operator LogicalOr(const Left, Right: TExpression): IExpression;
+        class operator LogicalNot(const Value: TExpression): IExpression;
       end;
       
     var
@@ -115,32 +115,32 @@ type
     constructor Create(const AName: string);
     
     // Comparison Operators
-    class operator Equal(const Left: TProp; const Right: TValue): TExpr;
-    class operator NotEqual(const Left: TProp; const Right: TValue): TExpr;
-    class operator GreaterThan(const Left: TProp; const Right: TValue): TExpr;
-    class operator GreaterThanOrEqual(const Left: TProp; const Right: TValue): TExpr;
-    class operator LessThan(const Left: TProp; const Right: TValue): TExpr;
-    class operator LessThanOrEqual(const Left: TProp; const Right: TValue): TExpr;
+    class operator Equal(const Left: TProperty; const Right: TValue): TExpression;
+    class operator NotEqual(const Left: TProperty; const Right: TValue): TExpression;
+    class operator GreaterThan(const Left: TProperty; const Right: TValue): TExpression;
+    class operator GreaterThanOrEqual(const Left: TProperty; const Right: TValue): TExpression;
+    class operator LessThan(const Left: TProperty; const Right: TValue): TExpression;
+    class operator LessThanOrEqual(const Left: TProperty; const Right: TValue): TExpression;
 
-    class operator Implicit(const Value: TProp): string;
+    class operator Implicit(const Value: TProperty): string;
 
     // Special Methods (Like, In, etc)
-    function Like(const Pattern: string): ICriterion;
-    function NotLike(const Pattern: string): ICriterion;
-    function StartsWith(const Value: string): ICriterion;
-    function EndsWith(const Value: string): ICriterion;
-    function Contains(const Value: string): ICriterion;
+    function Like(const Pattern: string): IExpression;
+    function NotLike(const Pattern: string): IExpression;
+    function StartsWith(const Value: string): IExpression;
+    function EndsWith(const Value: string): IExpression;
+    function Contains(const Value: string): IExpression;
     
-    function &In(const Values: TArray<string>): ICriterion; overload;
-    function &In(const Values: TArray<Integer>): ICriterion; overload;
-    function NotIn(const Values: TArray<string>): ICriterion; overload;
-    function NotIn(const Values: TArray<Integer>): ICriterion; overload;
+    function &In(const Values: TArray<string>): IExpression; overload;
+    function &In(const Values: TArray<Integer>): IExpression; overload;
+    function NotIn(const Values: TArray<string>): IExpression; overload;
+    function NotIn(const Values: TArray<Integer>): IExpression; overload;
     
-    function IsNull: ICriterion;
-    function IsNotNull: ICriterion;
+    function IsNull: IExpression;
+    function IsNotNull: IExpression;
     
     // Between as a method (not operator) like Spring4D
-    function Between(const Lower, Upper: Variant): ICriterion;
+    function Between(const Lower, Upper: Variant): IExpression;
     
     // OrderBy support
     function Asc: IOrderBy;
@@ -150,16 +150,16 @@ type
 
 implementation
 
-{ TAbstractCriterion }
+{ TAbstractExpression }
 
-function TAbstractCriterion.ToString: string;
+function TAbstractExpression.ToString: string;
 begin
   Result := ClassName;
 end;
 
-{ TBinaryCriterion }
+{ TBinaryExpression }
 
-constructor TBinaryCriterion.Create(const APropertyName: string;
+constructor TBinaryExpression.Create(const APropertyName: string;
   AOperator: TBinaryOperator; const AValue: TValue);
 begin
   inherited Create;
@@ -168,14 +168,14 @@ begin
   FValue := AValue;
 end;
 
-function TBinaryCriterion.ToString: string;
+function TBinaryExpression.ToString: string;
 begin
   Result := Format('(%s %d %s)', [FPropertyName, Ord(FOperator), FValue.ToString]);
 end;
 
-{ TLogicalCriterion }
+{ TLogicalExpression }
 
-constructor TLogicalCriterion.Create(const ALeft, ARight: ICriterion;
+constructor TLogicalExpression.Create(const ALeft, ARight: IExpression;
   AOperator: TLogicalOperator);
 begin
   inherited Create;
@@ -184,7 +184,7 @@ begin
   FOperator := AOperator;
 end;
 
-function TLogicalCriterion.ToString: string;
+function TLogicalExpression.ToString: string;
 var
   OpStr: string;
 begin
@@ -192,16 +192,16 @@ begin
   Result := Format('(%s %s %s)', [FLeft.ToString, OpStr, FRight.ToString]);
 end;
 
-{ TUnaryCriterion }
+{ TUnaryExpression }
 
-constructor TUnaryCriterion.Create(const ACriterion: ICriterion);
+constructor TUnaryExpression.Create(const AExpression: IExpression);
 begin
   inherited Create;
   FOperator := uoNot;
-  FCriterion := ACriterion;
+  FExpression := AExpression;
 end;
 
-constructor TUnaryCriterion.Create(const APropertyName: string;
+constructor TUnaryExpression.Create(const APropertyName: string;
   AOperator: TUnaryOperator);
 begin
   inherited Create;
@@ -209,180 +209,180 @@ begin
   FOperator := AOperator;
 end;
 
-function TUnaryCriterion.ToString: string;
+function TUnaryExpression.ToString: string;
 begin
   if FOperator = uoNot then
-    Result := Format('(NOT %s)', [FCriterion.ToString])
+    Result := Format('(NOT %s)', [FExpression.ToString])
   else if FOperator = uoIsNull then
     Result := Format('(%s IS NULL)', [FPropertyName])
   else
     Result := Format('(%s IS NOT NULL)', [FPropertyName]);
 end;
 
-{ TConstantCriterion }
+{ TConstantExpression }
 
-constructor TConstantCriterion.Create(AValue: Boolean);
+constructor TConstantExpression.Create(AValue: Boolean);
 begin
   inherited Create;
   FValue := AValue;
 end;
 
-function TConstantCriterion.ToString: string;
+function TConstantExpression.ToString: string;
 begin
   Result := BoolToStr(FValue, True);
 end;
 
-{ TProp.TExpr }
+{ TProperty.TExpression }
 
-class operator TProp.TExpr.Implicit(const Value: ICriterion): TExpr;
+class operator TProperty.TExpression.Implicit(const Value: IExpression): TExpression;
 begin
-  Result.FCriterion := Value;
+  Result.FExpression := Value;
 end;
 
-class operator TProp.TExpr.Implicit(const Value: TExpr): ICriterion;
+class operator TProperty.TExpression.Implicit(const Value: TExpression): IExpression;
 begin
-  Result := Value.FCriterion;
+  Result := Value.FExpression;
 end;
 
-class operator TProp.TExpr.LogicalAnd(const Left, Right: TExpr): ICriterion;
+class operator TProperty.TExpression.LogicalAnd(const Left, Right: TExpression): IExpression;
 begin
-  Result := TLogicalCriterion.Create(Left.FCriterion, Right.FCriterion, loAnd);
+  Result := TLogicalExpression.Create(Left.FExpression, Right.FExpression, loAnd);
 end;
 
-class operator TProp.TExpr.LogicalOr(const Left, Right: TExpr): ICriterion;
+class operator TProperty.TExpression.LogicalOr(const Left, Right: TExpression): IExpression;
 begin
-  Result := TLogicalCriterion.Create(Left.FCriterion, Right.FCriterion, loOr);
+  Result := TLogicalExpression.Create(Left.FExpression, Right.FExpression, loOr);
 end;
 
-class operator TProp.TExpr.LogicalNot(const Value: TExpr): ICriterion;
+class operator TProperty.TExpression.LogicalNot(const Value: TExpression): IExpression;
 begin
-  Result := TUnaryCriterion.Create(Value.FCriterion);
+  Result := TUnaryExpression.Create(Value.FExpression);
 end;
 
-{ TProp }
+{ TProperty }
 
-constructor TProp.Create(const AName: string);
+constructor TProperty.Create(const AName: string);
 begin
   FName := AName;
 end;
 
-class operator TProp.Equal(const Left: TProp; const Right: TValue): TExpr;
+class operator TProperty.Equal(const Left: TProperty; const Right: TValue): TExpression;
 begin
-  Result.FCriterion := TBinaryCriterion.Create(Left.FName, boEqual, Right);
+  Result.FExpression := TBinaryExpression.Create(Left.FName, boEqual, Right);
 end;
 
-class operator TProp.NotEqual(const Left: TProp; const Right: TValue): TExpr;
+class operator TProperty.NotEqual(const Left: TProperty; const Right: TValue): TExpression;
 begin
-  Result.FCriterion := TBinaryCriterion.Create(Left.FName, boNotEqual, Right);
+  Result.FExpression := TBinaryExpression.Create(Left.FName, boNotEqual, Right);
 end;
 
-class operator TProp.GreaterThan(const Left: TProp; const Right: TValue): TExpr;
+class operator TProperty.GreaterThan(const Left: TProperty; const Right: TValue): TExpression;
 begin
-  Result.FCriterion := TBinaryCriterion.Create(Left.FName, boGreaterThan, Right);
+  Result.FExpression := TBinaryExpression.Create(Left.FName, boGreaterThan, Right);
 end;
 
-class operator TProp.GreaterThanOrEqual(const Left: TProp; const Right: TValue): TExpr;
+class operator TProperty.GreaterThanOrEqual(const Left: TProperty; const Right: TValue): TExpression;
 begin
-  Result.FCriterion := TBinaryCriterion.Create(Left.FName, boGreaterThanOrEqual, Right);
+  Result.FExpression := TBinaryExpression.Create(Left.FName, boGreaterThanOrEqual, Right);
 end;
 
-class operator TProp.LessThan(const Left: TProp; const Right: TValue): TExpr;
+class operator TProperty.LessThan(const Left: TProperty; const Right: TValue): TExpression;
 begin
-  Result.FCriterion := TBinaryCriterion.Create(Left.FName, boLessThan, Right);
+  Result.FExpression := TBinaryExpression.Create(Left.FName, boLessThan, Right);
 end;
 
-class operator TProp.LessThanOrEqual(const Left: TProp; const Right: TValue): TExpr;
+class operator TProperty.LessThanOrEqual(const Left: TProperty; const Right: TValue): TExpression;
 begin
-  Result.FCriterion := TBinaryCriterion.Create(Left.FName, boLessThanOrEqual, Right);
+  Result.FExpression := TBinaryExpression.Create(Left.FName, boLessThanOrEqual, Right);
 end;
 
-function TProp.Like(const Pattern: string): ICriterion;
+function TProperty.Like(const Pattern: string): IExpression;
 begin
-  Result := TBinaryCriterion.Create(FName, boLike, Pattern);
+  Result := TBinaryExpression.Create(FName, boLike, Pattern);
 end;
 
-function TProp.NotLike(const Pattern: string): ICriterion;
+function TProperty.NotLike(const Pattern: string): IExpression;
 begin
-  Result := TBinaryCriterion.Create(FName, boNotLike, Pattern);
+  Result := TBinaryExpression.Create(FName, boNotLike, Pattern);
 end;
 
-function TProp.StartsWith(const Value: string): ICriterion;
+function TProperty.StartsWith(const Value: string): IExpression;
 begin
   Result := Like(Value + '%');
 end;
 
-function TProp.EndsWith(const Value: string): ICriterion;
+function TProperty.EndsWith(const Value: string): IExpression;
 begin
   Result := Like('%' + Value);
 end;
 
-function TProp.Contains(const Value: string): ICriterion;
+function TProperty.Contains(const Value: string): IExpression;
 begin
   Result := Like('%' + Value + '%');
 end;
 
-function TProp.&In(const Values: TArray<string>): ICriterion;
+function TProperty.&In(const Values: TArray<string>): IExpression;
 var
   Val: TValue;
 begin
   Val := TValue.From<TArray<string>>(Values);
-  Result := TBinaryCriterion.Create(FName, boIn, Val);
+  Result := TBinaryExpression.Create(FName, boIn, Val);
 end;
 
-class operator TProp.Implicit(const Value: TProp): string;
+class operator TProperty.Implicit(const Value: TProperty): string;
 begin
   Result := Value.Name;
 end;
 
-function TProp.&In(const Values: TArray<Integer>): ICriterion;
+function TProperty.&In(const Values: TArray<Integer>): IExpression;
 var
   Val: TValue;
 begin
   Val := TValue.From<TArray<Integer>>(Values);
-  Result := TBinaryCriterion.Create(FName, boIn, Val);
+  Result := TBinaryExpression.Create(FName, boIn, Val);
 end;
 
-function TProp.NotIn(const Values: TArray<string>): ICriterion;
+function TProperty.NotIn(const Values: TArray<string>): IExpression;
 var
   Val: TValue;
 begin
   Val := TValue.From<TArray<string>>(Values);
-  Result := TBinaryCriterion.Create(FName, boNotIn, Val);
+  Result := TBinaryExpression.Create(FName, boNotIn, Val);
 end;
 
-function TProp.NotIn(const Values: TArray<Integer>): ICriterion;
+function TProperty.NotIn(const Values: TArray<Integer>): IExpression;
 var
   Val: TValue;
 begin
   Val := TValue.From<TArray<Integer>>(Values);
-  Result := TBinaryCriterion.Create(FName, boNotIn, Val);
+  Result := TBinaryExpression.Create(FName, boNotIn, Val);
 end;
 
-function TProp.IsNull: ICriterion;
+function TProperty.IsNull: IExpression;
 begin
-  Result := TUnaryCriterion.Create(FName, uoIsNull);
+  Result := TUnaryExpression.Create(FName, uoIsNull);
 end;
 
-function TProp.IsNotNull: ICriterion;
+function TProperty.IsNotNull: IExpression;
 begin
-  Result := TUnaryCriterion.Create(FName, uoIsNotNull);
+  Result := TUnaryExpression.Create(FName, uoIsNotNull);
 end;
 
-function TProp.Between(const Lower, Upper: Variant): ICriterion;
+function TProperty.Between(const Lower, Upper: Variant): IExpression;
 begin
   // (Prop >= Lower) AND (Prop <= Upper)
-  // Create criteria manually to avoid operator ambiguity
-  var LowerCrit: ICriterion := TBinaryCriterion.Create(FName, boGreaterThanOrEqual, TValue.FromVariant(Lower));
-  var UpperCrit: ICriterion := TBinaryCriterion.Create(FName, boLessThanOrEqual, TValue.FromVariant(Upper));
-  Result := TLogicalCriterion.Create(LowerCrit, UpperCrit, loAnd);
+  // Create expressions manually to avoid operator ambiguity
+  var LowerCrit: IExpression := TBinaryExpression.Create(FName, boGreaterThanOrEqual, TValue.FromVariant(Lower));
+  var UpperCrit: IExpression := TBinaryExpression.Create(FName, boLessThanOrEqual, TValue.FromVariant(Upper));
+  Result := TLogicalExpression.Create(LowerCrit, UpperCrit, loAnd);
 end;
 
-function TProp.Asc: IOrderBy;
+function TProperty.Asc: IOrderBy;
 begin
   Result := TOrderBy.Create(FName, True);
 end;
 
-function TProp.Desc: IOrderBy;
+function TProperty.Desc: IOrderBy;
 begin
   Result := TOrderBy.Create(FName, False);
 end;

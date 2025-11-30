@@ -5,7 +5,7 @@ interface
 uses
   Dext.Entity.Attributes,
   Dext.Specifications.Base,
-  Dext.Specifications.Criteria,
+  Dext.Specifications.Expression,
   Dext.Specifications.Interfaces,
   Dext.Specifications.Types;
 
@@ -89,13 +89,13 @@ type
   // 🧬 Metadata Implementation (TypeOf)
   UserEntity = class
   public
-    class var Id: TProp;
-    class var Name: TProp;
-    class var Age: TProp;
-    class var Email: TProp;
-    class var City: TProp;
-    class var AddressId: TProp;
-    class var Address: TProp;
+    class var Id: TProperty;
+    class var Name: TProperty;
+    class var Age: TProperty;
+    class var Email: TProperty;
+    class var City: TProperty;
+    class var AddressId: TProperty;
+    class var Address: TProperty;
 
     class constructor Create;
   end;
@@ -112,13 +112,13 @@ implementation
 
 class constructor UserEntity.Create;
 begin
-  Id := TProp.Create('Id');
-  Name := TProp.Create('full_name'); // Use column name from [Column('full_name')]
-  Age := TProp.Create('Age');
-  Email := TProp.Create('Email');
-  City := TProp.Create('City');
-  AddressId := TProp.Create('AddressId');
-  Address := TProp.Create('Address');
+  Id := TProperty.Create('Id');
+  Name := TProperty.Create('full_name'); // Use column name from [Column('full_name')]
+  Age := TProperty.Create('Age');
+  Email := TProperty.Create('Email');
+  City := TProperty.Create('City');
+  AddressId := TProperty.Create('AddressId');
+  Address := TProperty.Create('Address');
 end;
 
 { TAdultUsersSpec }

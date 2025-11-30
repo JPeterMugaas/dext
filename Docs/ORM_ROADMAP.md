@@ -40,11 +40,11 @@ O objetivo é permitir consultas complexas de forma tipada e fluente.
 - [x] **Fluent Query API**: Builder para consultas (`Where`, `OrderBy`, `Skip`, `Take`).
   - *Exemplo:* `Context.Entities<TUser>.List(UserEntity.Age >= 18)`
   - *Exemplo:* `Specification.Where<TUser>(UserEntity.Age >= 18).OrderBy(UserEntity.Name.Asc).Take(10)`
-  - *Melhoria:* Overloads simplificados para `Where(ICriterion)` e `Select(string)`.
+  - *Melhoria:* Overloads simplificados para `Where(IExpression)` e `Select(string)`.
 - [x] **Metadados Tipados (TypeOf)**: Geração de metadados para evitar strings mágicas nas queries.
   - *Exemplo:* `UserEntity.Age >= 18`, `UserEntity.Name.StartsWith('John')`
 - [x] **Specifications Pattern**: Integração completa com o padrão Specification.
-  - Suporte a inline queries: `List(ICriterion)`
+  - Suporte a inline queries: `List(IExpression)`
   - Suporte a specifications reutilizáveis: `TAdultUsersSpec`
   - Fluent builder: `Specification.Where<T>(...).OrderBy(...).Take(...)`
 - [x] **Operadores Fluentes**: 

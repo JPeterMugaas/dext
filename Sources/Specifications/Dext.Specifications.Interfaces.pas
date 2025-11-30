@@ -10,9 +10,9 @@ type
   TMatchMode = (mmExact, mmStart, mmEnd, mmAnywhere);
 
   /// <summary>
-  ///   Represents a criterion in a query (e.g., "Age > 18").
+  ///   Represents an expression in a query (e.g., "Age > 18").
   /// </summary>
-  ICriterion = interface
+  IExpression = interface
     ['{10000000-0000-0000-0000-000000000001}']
     function ToString: string; // For debugging/logging
   end;
@@ -32,7 +32,7 @@ type
   /// </summary>
   ISpecification<T> = interface
     ['{10000000-0000-0000-0000-000000000003}']
-    function GetCriteria: ICriterion;
+    function GetExpression: IExpression;
     function GetIncludes: TArray<string>;
     function GetOrderBy: TArray<IOrderBy>;
     function GetSkip: Integer;
@@ -42,12 +42,12 @@ type
   end;
 
   /// <summary>
-  ///   Visitor interface for traversing the criteria tree.
-  ///   This is used by the ORM/Repository to translate criteria to SQL.
+  ///   Visitor interface for traversing the expression tree.
+  ///   This is used by the ORM/Repository to translate expressions to SQL.
   /// </summary>
-  ICriteriaVisitor = interface
+  IExpressionVisitor = interface
     ['{10000000-0000-0000-0000-000000000004}']
-    procedure Visit(const ACriterion: ICriterion);
+    procedure Visit(const AExpression: IExpression);
   end;
 
 implementation

@@ -45,7 +45,7 @@ type
     function GetTableName: string;
     function FindObject(const AId: Variant): TObject;
     procedure Add(const AEntity: TObject); overload;
-    function ListObjects(const ACriterion: ICriterion): TList<TObject>;
+    function ListObjects(const AExpression: IExpression): TList<TObject>;
     function GenerateCreateTableScript: string;
     
     procedure Add(const AEntity: T); overload;
@@ -71,31 +71,31 @@ type
     function Count(const ASpec: ISpecification<T>): Integer; overload;
 
     // Inline Queries
-    function List(const ACriterion: ICriterion): TList<T>; overload;
-    function FirstOrDefault(const ACriterion: ICriterion): T; overload;
-    function Any(const ACriterion: ICriterion): Boolean; overload;
-    function Count(const ACriterion: ICriterion): Integer; overload;
+    function List(const AExpression: IExpression): TList<T>; overload;
+    function FirstOrDefault(const AExpression: IExpression): T; overload;
+    function Any(const AExpression: IExpression): Boolean; overload;
+    function Count(const AExpression: IExpression): Integer; overload;
     
     // Lazy Queries (Deferred Execution)
     function Query(const ASpec: ISpecification<T>): TFluentQuery<T>; overload;
-    function Query(const ACriterion: ICriterion): TFluentQuery<T>; overload;
+    function Query(const AExpression: IExpression): TFluentQuery<T>; overload;
     function Query: TFluentQuery<T>; overload;
   end;
 
   // Helper class for inline queries (internal use)
   TInlineSpecification<T: class> = class(TSpecification<T>)
   public
-    constructor CreateWithCriterion(const ACriterion: ICriterion);
+    constructor CreateWithExpression(const AExpression: IExpression);
   end;
 
 implementation
 
 
-  constructor TInlineSpecification<T>.CreateWithCriterion(const ACriterion: ICriterion);
+  constructor TInlineSpecification<T>.CreateWithExpression(const AExpression: IExpression);
   begin
     inherited Create;
-    if ACriterion <> nil then
-      Where(ACriterion);
+    if AExpression <> nil then
+      Where(AExpression);
   end;
 
 { TDbSet<T> }
@@ -346,13 +346,13 @@ begin
   Add(T(AEntity));
 end;
 
-function TDbSet<T>.ListObjects(const ACriterion: ICriterion): TList<TObject>;
+function TDbSet<T>.ListObjects(const AExpression: IExpression): TList<TObject>;
 var
   ListT: TList<T>;
   Item: T;
 begin
   Result := TList<TObject>.Create;
-  ListT := List(ACriterion);
+  ListT := List(AExpression);
   try
     for Item in ListT do
       Result.Add(Item);
@@ -655,8 +655,8 @@ var
   FKMap: TDictionary<Integer, TObject>;
   RelatedType: PTypeInfo;
   RelatedPKName: string;
-  Crit: ICriterion;
-  PropHelper: TProp;
+  Crit: IExpression;
+  PropHelper: TProperty;
   P: TRttiProperty;
   Attr: TCustomAttribute;
   ColAttr: ColumnAttribute;
@@ -739,8 +739,8 @@ begin
           end;
         end;
         
-        // Build Criterion: RelatedPK IN (FKValues)
-        PropHelper := TProp.Create(RelatedPKName);
+        // Build Expression: RelatedPK IN (FKValues)
+        PropHelper := TProperty.Create(RelatedPKName);
         Crit := PropHelper.&In(FKValues.ToArray);
         
         RelatedEntities := RelatedSet.ListObjects(Crit);
@@ -816,9 +816,9 @@ begin
       SQL.Append('SELECT * FROM ').Append(GetTableName);
     
     // 1. Generate WHERE
-    if ASpec.GetCriteria <> nil then
+    if ASpec.GetExpression <> nil then
     begin
-      WhereClause := Generator.Generate(ASpec.GetCriteria);
+      WhereClause := Generator.Generate(ASpec.GetExpression);
       if WhereClause <> '' then
         SQL.Append(' WHERE ').Append(WhereClause);
     end;
@@ -900,9 +900,9 @@ begin
       SQL.Append('SELECT * FROM ').Append(GetTableName);
     
     // 1. Generate WHERE
-    if ASpec.GetCriteria <> nil then
+    if ASpec.GetExpression <> nil then
     begin
-      WhereClause := Generator.Generate(ASpec.GetCriteria);
+      WhereClause := Generator.Generate(ASpec.GetExpression);
       if WhereClause <> '' then
         SQL.Append(' WHERE ').Append(WhereClause);
     end;
@@ -959,9 +959,9 @@ begin
     SQL.Append('SELECT 1 FROM ').Append(GetTableName);
     
     // Generate WHERE clause
-    if ASpec.GetCriteria <> nil then
+    if ASpec.GetExpression <> nil then
     begin
-      WhereClause := Generator.Generate(ASpec.GetCriteria);
+      WhereClause := Generator.Generate(ASpec.GetExpression);
       if WhereClause <> '' then
         SQL.Append(' WHERE ').Append(WhereClause);
     end;
@@ -993,9 +993,9 @@ begin
   try
     SQL := 'SELECT COUNT(*) FROM ' + GetTableName;
     
-    if ASpec.GetCriteria <> nil then
+    if ASpec.GetExpression <> nil then
     begin
-      WhereClause := Generator.Generate(ASpec.GetCriteria);
+      WhereClause := Generator.Generate(ASpec.GetExpression);
       if WhereClause <> '' then
         SQL := SQL + ' WHERE ' + WhereClause;
     end;
@@ -1010,35 +1010,35 @@ begin
   end;
 end;
 
-function TDbSet<T>.List(const ACriterion: ICriterion): TList<T>;
+function TDbSet<T>.List(const AExpression: IExpression): TList<T>;
 var
   Spec: ISpecification<T>;
 begin
-  Spec := TInlineSpecification<T>.CreateWithCriterion(ACriterion);
+  Spec := TInlineSpecification<T>.CreateWithExpression(AExpression);
   Result := List(Spec);
 end;
 
-function TDbSet<T>.FirstOrDefault(const ACriterion: ICriterion): T;
+function TDbSet<T>.FirstOrDefault(const AExpression: IExpression): T;
 var
   Spec: ISpecification<T>;
 begin
-  Spec := TInlineSpecification<T>.CreateWithCriterion(ACriterion);
+  Spec := TInlineSpecification<T>.CreateWithExpression(AExpression);
   Result := FirstOrDefault(Spec as ISpecification<T>);
 end;
 
-function TDbSet<T>.Any(const ACriterion: ICriterion): Boolean;
+function TDbSet<T>.Any(const AExpression: IExpression): Boolean;
 var
   Spec: ISpecification<T>;
 begin
-  Spec := TInlineSpecification<T>.CreateWithCriterion(ACriterion);
+  Spec := TInlineSpecification<T>.CreateWithExpression(AExpression);
   Result := Any(Spec as ISpecification<T>);
 end;
 
-function TDbSet<T>.Count(const ACriterion: ICriterion): Integer;
+function TDbSet<T>.Count(const AExpression: IExpression): Integer;
 var
   Spec: ISpecification<T>;
 begin
-  Spec := TInlineSpecification<T>.CreateWithCriterion(ACriterion);
+  Spec := TInlineSpecification<T>.CreateWithExpression(AExpression);
   Result := Count(Spec as ISpecification<T>);
 end;
 
@@ -1060,11 +1060,11 @@ begin
     end);
 end;
 
-function TDbSet<T>.Query(const ACriterion: ICriterion): TFluentQuery<T>;
+function TDbSet<T>.Query(const AExpression: IExpression): TFluentQuery<T>;
 var
   Spec: ISpecification<T>;
 begin
-  Spec := TInlineSpecification<T>.CreateWithCriterion(ACriterion);
+  Spec := TInlineSpecification<T>.CreateWithExpression(AExpression);
   Result := Query(Spec);
 end;
 

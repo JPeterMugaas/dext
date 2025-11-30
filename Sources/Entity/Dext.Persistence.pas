@@ -25,7 +25,7 @@ type
   EOptimisticConcurrencyException = Dext.Entity.Core.EOptimisticConcurrencyException;
 
 
-  ICriterion = Dext.Specifications.Interfaces.ICriterion;
+  IExpression = Dext.Specifications.Interfaces.IExpression;
   
   // Specification Builder Helper (Static Class)
   Specification = Dext.Specifications.Fluent.Specification;

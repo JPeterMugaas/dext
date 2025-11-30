@@ -439,7 +439,7 @@ begin
   
   Users := FContext.Entities<TUser>.Query;
   try
-    // Test Where(ICriterion) - Simplified syntax
+    // Test Where(IExpression) - Simplified syntax
     var Filtered := Users.Where(UserEntity.Age > 15);
     try
       Count := Filtered.Count;

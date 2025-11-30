@@ -12,17 +12,17 @@ uses
 
 type
   /// <summary>
-  ///   Evaluates a criteria tree against an object instance in memory using RTTI.
+  ///   Evaluates an expression tree against an object instance in memory using RTTI.
   /// </summary>
-  TCriteriaEvaluator = class
+  TExpressionEvaluator = class
   public
-    class function Evaluate(const ACriterion: ICriterion; const AObject: TObject): Boolean;
+    class function Evaluate(const AExpression: IExpression; const AObject: TObject): Boolean;
   end;
 
 implementation
 
 type
-  TEvaluatorVisitor = class(TInterfacedObject, ICriteriaVisitor)
+  TEvaluatorVisitor = class(TInterfacedObject, IExpressionVisitor)
   private
     FObject: TObject;
     FResult: Boolean;
@@ -32,21 +32,21 @@ type
     function Compare(const Left, Right: TValue; Op: TBinaryOperator): Boolean;
   public
     constructor Create(AObject: TObject);
-    procedure Visit(const ACriterion: ICriterion);
+    procedure Visit(const AExpression: IExpression);
     property Result: Boolean read FResult;
   end;
 
-{ TCriteriaEvaluator }
+{ TExpressionEvaluator }
 
-class function TCriteriaEvaluator.Evaluate(const ACriterion: ICriterion; const AObject: TObject): Boolean;
+class function TExpressionEvaluator.Evaluate(const AExpression: IExpression; const AObject: TObject): Boolean;
 var
   Visitor: TEvaluatorVisitor;
 begin
-  if ACriterion = nil then Exit(True);
+  if AExpression = nil then Exit(True);
   
   Visitor := TEvaluatorVisitor.Create(AObject);
   try
-    Visitor.Visit(ACriterion);
+    Visitor.Visit(AExpression);
     Result := Visitor.Result;
   finally
     Visitor.Free;
@@ -135,17 +135,17 @@ begin
   end;
 end;
 
-procedure TEvaluatorVisitor.Visit(const ACriterion: ICriterion);
+procedure TEvaluatorVisitor.Visit(const AExpression: IExpression);
 begin
-  if ACriterion is TBinaryCriterion then
+  if AExpression is TBinaryExpression then
   begin
-    var Bin := TBinaryCriterion(ACriterion);
+    var Bin := TBinaryExpression(AExpression);
     var PropVal := GetValue(Bin.PropertyName);
     FResult := Compare(PropVal, Bin.Value, Bin.BinaryOperator);
   end
-  else if ACriterion is TLogicalCriterion then
+  else if AExpression is TLogicalExpression then
   begin
-    var Log := TLogicalCriterion(ACriterion);
+    var Log := TLogicalExpression(AExpression);
     
     // Visit Left
     Visit(Log.Left);
@@ -172,12 +172,12 @@ begin
     else
       FResult := LeftRes or RightRes;
   end
-  else if ACriterion is TUnaryCriterion then
+  else if AExpression is TUnaryExpression then
   begin
-    var Un := TUnaryCriterion(ACriterion);
+    var Un := TUnaryExpression(AExpression);
     if Un.UnaryOperator = uoNot then
     begin
-      Visit(Un.Criterion);
+      Visit(Un.Expression);
       FResult := not FResult;
     end
     else if Un.UnaryOperator = uoIsNull then
@@ -191,9 +191,9 @@ begin
       FResult := not (Val.IsEmpty or (Val.Kind = tkClass) and (Val.AsObject = nil) or (Val.Kind = tkInterface) and (Val.AsInterface = nil));
     end;
   end
-  else if ACriterion is TConstantCriterion then
+  else if AExpression is TConstantExpression then
   begin
-    FResult := TConstantCriterion(ACriterion).Value;
+    FResult := TConstantExpression(AExpression).Value;
   end;
 end;
 

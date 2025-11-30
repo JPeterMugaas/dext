@@ -14,7 +14,7 @@ uses
 
 type
   /// <summary>
-  ///   Translates a Criteria Tree into a SQL WHERE clause and Parameters.
+  ///   Translates a Expression Tree into a SQL WHERE clause and Parameters.
   /// </summary>
   TSQLWhereGenerator = class
   private
@@ -23,11 +23,11 @@ type
     FParamCount: Integer;
     FDialect: ISQLDialect;
     
-    procedure Process(const ACriterion: ICriterion);
-    procedure ProcessBinary(const C: TBinaryCriterion);
-    procedure ProcessLogical(const C: TLogicalCriterion);
-    procedure ProcessUnary(const C: TUnaryCriterion);
-    procedure ProcessConstant(const C: TConstantCriterion);
+    procedure Process(const AExpression: IExpression);
+    procedure ProcessBinary(const C: TBinaryExpression);
+    procedure ProcessLogical(const C: TLogicalExpression);
+    procedure ProcessUnary(const C: TUnaryExpression);
+    procedure ProcessConstant(const C: TConstantExpression);
     
     function GetNextParamName: string;
     function GetBinaryOpSQL(Op: TBinaryOperator): string;
@@ -39,9 +39,9 @@ type
     
     /// <summary>
     ///   Generates the SQL and populates Params.
-    ///   Returns empty string if Criteria is nil.
+    ///   Returns empty string if Expression is nil.
     /// </summary>
-    function Generate(const ACriterion: ICriterion): string;
+    function Generate(const AExpression: IExpression): string;
     
     /// <summary>
     ///   Access the parameters generated during the process.
@@ -90,16 +90,16 @@ begin
   inherited;
 end;
 
-function TSQLWhereGenerator.Generate(const ACriterion: ICriterion): string;
+function TSQLWhereGenerator.Generate(const AExpression: IExpression): string;
 begin
   FSQL.Clear;
   FParams.Clear;
   FParamCount := 0;
   
-  if ACriterion = nil then
+  if AExpression = nil then
     Exit('');
     
-  Process(ACriterion);
+  Process(AExpression);
   Result := FSQL.ToString;
 end;
 
@@ -109,21 +109,21 @@ begin
   Result := 'p' + IntToStr(FParamCount);
 end;
 
-procedure TSQLWhereGenerator.Process(const ACriterion: ICriterion);
+procedure TSQLWhereGenerator.Process(const AExpression: IExpression);
 begin
-  if ACriterion is TBinaryCriterion then
-    ProcessBinary(TBinaryCriterion(ACriterion))
-  else if ACriterion is TLogicalCriterion then
-    ProcessLogical(TLogicalCriterion(ACriterion))
-  else if ACriterion is TUnaryCriterion then
-    ProcessUnary(TUnaryCriterion(ACriterion))
-  else if ACriterion is TConstantCriterion then
-    ProcessConstant(TConstantCriterion(ACriterion))
+  if AExpression is TBinaryExpression then
+    ProcessBinary(TBinaryExpression(AExpression))
+  else if AExpression is TLogicalExpression then
+    ProcessLogical(TLogicalExpression(AExpression))
+  else if AExpression is TUnaryExpression then
+    ProcessUnary(TUnaryExpression(AExpression))
+  else if AExpression is TConstantExpression then
+    ProcessConstant(TConstantExpression(AExpression))
   else
-    raise Exception.Create('Unknown criterion type: ' + ACriterion.ToString);
+    raise Exception.Create('Unknown expression type: ' + AExpression.ToString);
 end;
 
-procedure TSQLWhereGenerator.ProcessBinary(const C: TBinaryCriterion);
+procedure TSQLWhereGenerator.ProcessBinary(const C: TBinaryExpression);
 var
   ParamName: string;
   ArrayValue: TValue;
@@ -198,7 +198,7 @@ begin
 end;
 
 
-procedure TSQLWhereGenerator.ProcessLogical(const C: TLogicalCriterion);
+procedure TSQLWhereGenerator.ProcessLogical(const C: TLogicalExpression);
 begin
   FSQL.Append('(');
   Process(C.Left);
@@ -209,12 +209,12 @@ begin
   FSQL.Append(')');
 end;
 
-procedure TSQLWhereGenerator.ProcessUnary(const C: TUnaryCriterion);
+procedure TSQLWhereGenerator.ProcessUnary(const C: TUnaryExpression);
 begin
   if C.UnaryOperator = uoNot then
   begin
     FSQL.Append('(NOT ');
-    Process(C.Criterion);
+    Process(C.Expression);
     FSQL.Append(')');
   end
   else
@@ -228,7 +228,7 @@ begin
   end;
 end;
 
-procedure TSQLWhereGenerator.ProcessConstant(const C: TConstantCriterion);
+procedure TSQLWhereGenerator.ProcessConstant(const C: TConstantExpression);
 begin
   if C.Value then
     FSQL.Append('(1=1)')

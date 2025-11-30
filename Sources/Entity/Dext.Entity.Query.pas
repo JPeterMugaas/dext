@@ -94,13 +94,11 @@ type
     function Select<TResult>(const APropertyName: string): TFluentQuery<TResult>; overload;
     function Select(const AProperties: array of string): TFluentQuery<T>; overload;
 
-
     /// <summary>
     ///   Filters a sequence of values based on a predicate.
     /// </summary>
     function Where(const APredicate: TPredicate<T>): TFluentQuery<T>; overload;
-    function Where(const ACriterion: ICriterion): TFluentQuery<T>; overload;
-
+    function Where(const AExpression: IExpression): TFluentQuery<T>; overload;
 
     /// <summary>
     ///   Bypasses a specified number of elements in a sequence and then returns the remaining elements.
@@ -477,9 +475,9 @@ end;
 
 
 
-function TFluentQuery<T>.Where(const ACriterion: ICriterion): TFluentQuery<T>;
+function TFluentQuery<T>.Where(const AExpression: IExpression): TFluentQuery<T>;
 begin
-  Result := Where(ACriterion);
+  Result := Where(AExpression);
 end;
 
 

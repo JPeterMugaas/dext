@@ -180,7 +180,7 @@
         <DCCReference Include="Dext.Core.Memory.pas"/>
         <DCCReference Include="Dext.Core.ValueConverters.pas"/>
         <DCCReference Include="..\Specifications\Dext.Specifications.Base.pas"/>
-        <DCCReference Include="..\Specifications\Dext.Specifications.Criteria.pas"/>
+        <DCCReference Include="..\Specifications\Dext.Specifications.Expression.pas"/>
         <DCCReference Include="..\Specifications\Dext.Specifications.Fluent.pas"/>
         <DCCReference Include="..\Specifications\Dext.Specifications.Interfaces.pas"/>
         <DCCReference Include="..\Specifications\Dext.Specifications.OrderBy.pas"/>

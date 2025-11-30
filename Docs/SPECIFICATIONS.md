@@ -44,9 +44,9 @@ var
 
 ## 🛠️ Como Funciona (Under the Hood)
 
-1.  **`Prop('Name')`**: Retorna um record `TProp`.
-2.  **`>` (Operator Overloading)**: O operador `GreaterThan` retorna um record `TExpr` contendo um `ICriterion` (nó da árvore).
-3.  **`and` (Logical Operator)**: O operador `LogicalAnd` combina dois `TExpr` em um novo nó `AND`.
+1.  **`Prop('Name')`**: Retorna um record `TProperty`.
+2.  **`>` (Operator Overloading)**: O operador `GreaterThan` retorna um record `TExpression` contendo um `IExpression` (nó da árvore).
+3.  **`and` (Logical Operator)**: O operador `LogicalAnd` combina dois `TExpression` em um novo nó `AND`.
 4.  **`Where(...)`**: Recebe a árvore final e armazena na Specification.
 
 ### Geração de SQL
@@ -69,9 +69,9 @@ WHERE ((Price > :p1) AND (IsActive = :p2))
 
 ## 📂 Estrutura dos Arquivos
 
-- `Dext.Specifications.Interfaces.pas`: Contratos base (`ISpecification`, `ICriterion`).
-- `Dext.Specifications.Types.pas`: Implementações dos nós da árvore (`TBinaryCriterion`, etc).
-- `Dext.Specifications.Criteria.pas`: A mágica dos operadores (`Prop`, `TExpr`).
+- `Dext.Specifications.Interfaces.pas`: Contratos base (`ISpecification`, `IExpression`).
+- `Dext.Specifications.Types.pas`: Implementações dos nós da árvore (`TBinaryExpression`, etc).
+- `Dext.Specifications.Criteria.pas`: A mágica dos operadores (`Prop`, `TExpression`).
 - `Dext.Specifications.Base.pas`: Classe base `TSpecification<T>`.
 
 ---
