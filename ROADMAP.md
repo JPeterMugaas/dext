@@ -192,7 +192,15 @@ Abaixo, comparamos o Dext com as principais alternativas do mercado Delphi e sua
 - [x] **Background Services**: Suporte a `IHostedService` e `TBackgroundService` para tarefas em segundo plano.
 - [x] **Options Pattern**: Configuração fortemente tipada via `IOptions<T>`.
 
-### 5. Ecossistema & Tooling (📅 Planejado para v1.1)
+### 5. Entity ORM (🚧 Em Andamento)
+- [x] **Basic CRUD**: Operações Create, Read, Update, Delete.
+- [x] **Fluent API**: Consultas fluentes (`Query()`, `Where()`, `Skip()`, `Take()`).
+- [x] **Lazy Loading**: Carregamento tardio com `VirtualInterface` e `ILazy<T>`.
+- [ ] **Concurrency**: Correção de testes de concorrência otimista.
+- [ ] **Fluent API Fixes**: Correção de `Any`, `FirstOrDefault` e projeções.
+- [ ] **API Cleanup**: Padronização de nomes de métodos (`Update` vs `UpdateEntity`) usando overloads.
+
+### 6. Ecossistema & Tooling (📅 Planejado para v1.1)
 - [ ] **CLI**: Ferramenta de linha de comando (`dext new webapi`).
 - [ ] **Templates**: Templates de projeto para Delphi (IDE Wizards).
 - [ ] **Web Stencils**: Integração com engine de renderização server-side.
@@ -200,7 +208,7 @@ Abaixo, comparamos o Dext com as principais alternativas do mercado Delphi e sua
 - [ ] **Distributed Cache**: Implementação Redis para `IDistributedCache`.
 - [ ] **Distributed Rate Limiting**: Suporte a Redis para Rate Limiting distribuído.
 
-### 6. Documentação & Qualidade (🚧 Em Andamento)
+### 7. Documentação & Qualidade (🚧 Em Andamento)
 - [x] **Integration Tests**: Testes de integração completos (MinimalAPITest, ControllerExample).
 - [x] **Configuration Docs**: Documentação do sistema de configuração.
 - [x] **Rate Limiting Docs**: Documentação completa do sistema de Rate Limiting.
@@ -209,6 +217,7 @@ Abaixo, comparamos o Dext com as principais alternativas do mercado Delphi e sua
 - [x] **Health Checks Docs**: Documentação de Health Checks.
 - [x] **Background Services Docs**: Documentação de Background Services.
 - [x] **Options Pattern Docs**: Documentação do padrão Options.
+- [x] **Lazy Loading Docs**: Documentação do mecanismo de Lazy Loading.
 - [ ] **Unit Tests**: Cobertura abrangente (Core, DI, Http).
 - [ ] **Documentation**: Site de documentação oficial (VitePress/Docusaurus).
 - [ ] **Samples**: Repositório de exemplos "Real World".

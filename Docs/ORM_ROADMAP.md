@@ -129,8 +129,16 @@ Melhorar como os dados relacionados são carregados e gerenciar ciclo de vida da
   - Rastrear estado das entidades (Added, Modified, Deleted, Unchanged)
 - [x] **Eager Loading (.Include)**: Carregamento antecipado completo e validado.
   - *Exemplo:* `Context.Entities<TUser>.Include('Address').Find(1);`
-- [ ] **Lazy Loading**: Carregamento sob demanda (via Proxies ou Virtual getters).
+- [x] **Lazy Loading**: Carregamento sob demanda (via VirtualInterface e ILazy<T>).
+  - *Status*: ✅ **Implementado e Validado**
+  - *Implementação*: `TLazyInjector`, `TLazyInvokeHandler`, `TVirtualInterface`
+  - *Suporte*: Referências (1:1/N:1) e Coleções (1:N)
 - [x] **Explicit Loading**: Carregamento manual de navegações (`Context.Entry(User).Collection('Orders').Load()`).
+
+### 🔧 Manutenção & Débito Técnico
+- [ ] **API Cleanup**: Padronização de nomes de métodos (`Update` vs `UpdateEntity`) usando overloads.
+- [ ] **Concurrency Fixes**: Correção de testes de concorrência otimista em cenários complexos.
+- [ ] **Fluent API Fixes**: Correção de `Any`, `FirstOrDefault` e projeções em casos de borda.
 
 ### ⚡ Fase 5: Performance & Tuning
 - [ ] **True Bulk SQL**: Otimizar `AddRange` para usar `INSERT INTO ... VALUES (...), (...)`.
