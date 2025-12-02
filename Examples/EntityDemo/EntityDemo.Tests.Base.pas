@@ -16,14 +16,18 @@ uses
   FireDAC.Phys,
   FireDAC.Phys.PG,
   FireDAC.Phys.PGDef,
+  FireDAC.Phys.SQLite,
+  FireDAC.Phys.FB,
   FireDAC.Stan.ExprFuncs,
   FireDAC.ConsoleUI.Wait,
   FireDAC.Comp.Client,
   FireDAC.DApt,
   Dext.Persistence,
   Dext.Entity.Drivers.FireDAC,
+  Dext.Entity.Drivers.Interfaces,
   Dext.Entity.Dialects,
-  EntityDemo.Entities;
+  EntityDemo.Entities,
+  EntityDemo.DbConfig;
 
 type
   TBaseTestClass = class of TBaseTest;
@@ -62,29 +66,22 @@ begin
 end;
 
 procedure TBaseTest.Setup;
+var
+  DbConnection: IDbConnection;
+  Dialect: ISQLDialect;
 begin
-  // 1. Setup FireDAC Connection (PostgreSQL)
-  FConn := TFDConnection.Create(nil);
-  FConn.DriverName := 'PG';
-  FConn.Params.Database := 'postgres';
-  FConn.Params.UserName := 'postgres';
-  FConn.Params.Password := 'root';
-  FConn.Params.Add('Server=localhost');
-  FConn.LoginPrompt := False;
+  WriteLn('🔧 Setting up test with: ' + TDbConfig.GetProviderName);
   
-  try
-    FConn.Connected := True;
-  except
-    on E: Exception do
-    begin
-      WriteLn('❌ Failed to connect to PostgreSQL: ' + E.Message);
-      WriteLn('⚠️ Make sure PostgreSQL is running and credentials are correct (user: postgres, pass: root).');
-      Halt(1);
-    end;
-  end;
+  // 1. Create connection using TDbConfig
+  DbConnection := TDbConfig.CreateConnection;
+  Dialect := TDbConfig.CreateDialect;
+  
+  // Get the underlying TFDConnection for raw SQL operations
+  FConn := (DbConnection as TFireDACConnection).Connection;
 
-  // Drop tables to ensure clean state (Case sensitive if quoted)
+  // Drop tables to ensure clean state
   try
+    WriteLn('🗑️  Dropping existing tables...');
     // Order matters due to FKs
     FConn.ExecSQL('DROP TABLE IF EXISTS order_items CASCADE');
     FConn.ExecSQL('DROP TABLE IF EXISTS products CASCADE');
@@ -92,18 +89,23 @@ begin
     FConn.ExecSQL('DROP TABLE IF EXISTS addresses CASCADE');
   except
     on E: Exception do
-      WriteLn('⚠️ Warning dropping tables: ' + E.Message);
+      WriteLn('⚠️  Warning dropping tables: ' + E.Message);
   end;
 
   // 2. Initialize Context
-  FContext := TDbContext.Create(TFireDACConnection.Create(FConn, False), TPostgreSQLDialect.Create);
+  FContext := TDbContext.Create(DbConnection, Dialect);
   
   // 3. Register Entities & Create Schema
+  WriteLn('📦 Registering entities...');
   FContext.Entities<TAddress>;
   FContext.Entities<TUser>;
   FContext.Entities<TOrderItem>;
   FContext.Entities<TProduct>;
+  
+  WriteLn('🏗️  Creating schema...');
   FContext.EnsureCreated;
+  WriteLn('✅ Setup complete!');
+  WriteLn('');
 end;
 
 procedure TBaseTest.TearDown;

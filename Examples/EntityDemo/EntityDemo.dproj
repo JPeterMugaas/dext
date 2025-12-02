@@ -132,6 +132,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="EntityDemo.DbConfig.pas"/>
         <DCCReference Include="EntityDemo.Tests.AdvancedQuery.pas"/>
         <DCCReference Include="EntityDemo.Tests.Base.pas"/>
         <DCCReference Include="EntityDemo.Tests.Bulk.pas"/>

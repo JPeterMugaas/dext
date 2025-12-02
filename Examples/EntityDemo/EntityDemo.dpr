@@ -4,6 +4,7 @@
 
 uses
   System.SysUtils,
+  EntityDemo.DbConfig in 'EntityDemo.DbConfig.pas',
   EntityDemo.Tests.AdvancedQuery in 'EntityDemo.Tests.AdvancedQuery.pas',
   EntityDemo.Tests.Base in 'EntityDemo.Tests.Base.pas',
   EntityDemo.Tests.Bulk in 'EntityDemo.Tests.Bulk.pas',
@@ -32,10 +33,6 @@ end;
 
 procedure RunAllTests;
 begin
-  WriteLn('🚀 Dext Entity ORM Demo Suite');
-  WriteLn('=============================');
-  WriteLn('');
-
   // 1. CRUD Tests
   RunTest(TCRUDTest);
   // 2. Relationships Tests
@@ -64,6 +61,31 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := True;
   try
+    WriteLn('🚀 Dext Entity ORM Demo Suite');
+    WriteLn('=============================');
+    WriteLn('');
+    
+    // ========================================
+    // Database Configuration
+    // ========================================
+    // Uncomment the provider you want to test:
+    
+    // Option 1: SQLite (Default - File-based, good for development)
+    // TDbConfig.SetProvider(dpSQLite);
+    // TDbConfig.ConfigureSQLite('test.db');
+    
+    // Option 2: PostgreSQL (Server-based, production-ready)
+    TDbConfig.SetProvider(dpPostgreSQL);
+    TDbConfig.ConfigurePostgreSQL('localhost', 5432, 'postgres', 'postgres', 'root');
+    
+    // Option 3: Firebird (Coming soon - Brazilian market favorite)
+    // TDbConfig.SetProvider(dpFirebird);
+    // TDbConfig.ConfigureFirebird('test.fdb', 'SYSDBA', 'masterkey');
+    
+    WriteLn('📊 Database Provider: ' + TDbConfig.GetProviderName);
+    WriteLn('');
+    
+    // Run all tests
     RunAllTests;
   except
     on E: Exception do
