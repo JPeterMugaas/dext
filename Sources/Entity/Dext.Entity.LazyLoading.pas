@@ -41,6 +41,8 @@ type
     procedure Invoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
   public
     constructor Create(AContext: IDbContext; AEntity: TObject; const APropName: string; AIsCollection: Boolean);
+    // Public callback for TVirtualInterface - avoids closure capture
+    procedure OnInvoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
   end;
 
   // Deprecated: Old interceptor-based loader
@@ -161,8 +163,8 @@ var
   InterfaceType: TRttiInterfaceType;
   PropName: string;
   IsCollection: Boolean;
-  Handler: IInterface; // Keep reference to avoid leak
-  VI: TVirtualInterface;
+  Handler: TLazyInvokeHandler;
+  LazyIntf: IInterface;
   RecordPtr: Pointer;
 begin
   // 1. Determine Property Name from Field Name (FAddress -> Address)
@@ -175,10 +177,7 @@ begin
   if AField.FieldType.Name.Contains('TList<') or AField.FieldType.Name.Contains('TObjectList<') then
     IsCollection := True;
 
-  // 3. Create Handler and hold it in interface variable
-  Handler := TLazyInvokeHandler.Create(AContext, AEntity, PropName, IsCollection);
-  
-  // 4. Create Virtual Interface for ILazy<T>
+  // 3. Get Lazy<T> record structure
   LazyRecordType := AField.FieldType.AsRecord;
   InstanceField := LazyRecordType.GetField('FInstance');
   if InstanceField = nil then 
@@ -189,31 +188,29 @@ begin
   
   InterfaceType := InstanceField.FieldType as TRttiInterfaceType;
   
-  // Create TVirtualInterface capturing the Handler interface
-  VI := TVirtualInterface.Create(InterfaceType.Handle, 
-    procedure(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue)
-    begin
-      (Handler as TLazyInvokeHandler).Invoke(Method, Args, Result);
-    end);
+  // 4. Create Handler
+  Handler := TLazyInvokeHandler.Create(AContext, AEntity, PropName, IsCollection);
   
-  // 5. Set the interface into the record's FInstance field
+  // 5. Create TVirtualInterface using method reference (NOT closure)
+  // This avoids the closure activation record leak
+  if not Supports(
+    TVirtualInterface.Create(InterfaceType.Handle, Handler.OnInvoke),
+    InterfaceType.GUID, 
+    LazyIntf) then
+  begin
+    Handler.Free;
+    Exit;
+  end;
+  
+  // 6. Set the interface into the record's FInstance field
   RecordPtr := PByte(AEntity) + AField.Offset;
   
-  var Intf: IInterface;
-  if not Supports(VI, InterfaceType.GUID, Intf) then
-    Exit;
-  
-  // CRITICAL FIX: Don't use TValue.Make with InterfaceType.Handle!
-  // That tries to create a TValue of the INTERFACE type, which is wrong.
-  // Instead, we need to set the FInstance field directly.
-  // The FInstance field is at offset 0 in the Lazy<T> record.
-  
-  // Set the interface pointer directly
-  PPointer(RecordPtr)^ := Pointer(Intf);
+  // Set the interface pointer directly (FInstance is at offset 0 in Lazy<T>)
+  PPointer(RecordPtr)^ := Pointer(LazyIntf);
   
   // Increment reference count since we're storing it
-  if Intf <> nil then
-    Intf._AddRef;
+  if LazyIntf <> nil then
+    LazyIntf._AddRef;
 end;
 
 { TLazyInvokeHandler }
@@ -226,6 +223,11 @@ begin
   FPropName := APropName;
   FIsCollection := AIsCollection;
   FLoaded := False;
+end;
+
+procedure TLazyInvokeHandler.OnInvoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
+begin
+  Invoke(Method, Args, Result);
 end;
 
 procedure TLazyInvokeHandler.Invoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);

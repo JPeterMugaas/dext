@@ -127,6 +127,11 @@
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <Manifest_File>..\(None)</Manifest_File>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
+        <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+        <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+        <DCC_LargeAddressAware>true</DCC_LargeAddressAware>
+        <DCC_MapFile>3</DCC_MapFile>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -144,6 +149,7 @@
         <DCCReference Include="EntityDemo.Tests.LazyExecution.pas"/>
         <DCCReference Include="EntityDemo.Tests.LazyLoading.pas"/>
         <DCCReference Include="EntityDemo.Tests.Relationships.pas"/>
+        <DCCReference Include="EntityDemo.Tests.Scaffolding.pas"/>
         <DCCReference Include="EntityDemo.Entities.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

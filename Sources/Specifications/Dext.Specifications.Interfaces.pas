@@ -39,6 +39,10 @@ type
     function GetTake: Integer;
     function IsPagingEnabled: Boolean;
     function GetSelectedColumns: TArray<string>;
+    
+    // Fluent methods
+    procedure Take(const ACount: Integer);
+    procedure Skip(const ACount: Integer);
   end;
 
   /// <summary>

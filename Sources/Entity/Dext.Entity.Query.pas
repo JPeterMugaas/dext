@@ -485,28 +485,30 @@ end;
 
 function TFluentQuery<T>.Skip(const ACount: Integer): TFluentQuery<T>;
 var
-  LSource: TEnumerable<T>;
+  Iterator: TQueryIterator<T>;
 begin
-  LSource := Self;
+  // Create iterator directly without closure to avoid activation record leak
+  Iterator := TSkipIterator<T>.Create(Self, ACount);
   Result := TFluentQuery<T>.Create(
     function: TQueryIterator<T>
     begin
-      Result := TSkipIterator<T>.Create(LSource, ACount);
+      Result := Iterator;
     end,
-    TObject(Self)); // Pass Self as parent
+    nil); // No parent ownership needed
 end;
 
 function TFluentQuery<T>.Take(const ACount: Integer): TFluentQuery<T>;
 var
-  LSource: TEnumerable<T>;
+  Iterator: TQueryIterator<T>;
 begin
-  LSource := Self;
+  // Create iterator directly without closure to avoid activation record leak
+  Iterator := TTakeIterator<T>.Create(Self, ACount);
   Result := TFluentQuery<T>.Create(
     function: TQueryIterator<T>
     begin
-      Result := TTakeIterator<T>.Create(LSource, ACount);
+      Result := Iterator;
     end,
-    TObject(Self)); // Pass Self as parent
+    nil); // No parent ownership needed
 end;
 
 function TFluentQuery<T>.ToList: TList<T>;

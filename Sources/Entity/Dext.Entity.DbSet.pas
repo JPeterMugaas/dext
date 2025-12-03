@@ -35,7 +35,7 @@ type
     FMap: TEntityMap;
 
     procedure MapEntity;
-    function Hydrate(Reader: IDbReader): T;
+    function Hydrate(const Reader: IDbReader): T;
   protected
     function GetEntityId(const AEntity: T): string; overload;
     function GetEntityId(const AEntity: TObject): string; overload;
@@ -336,7 +336,7 @@ begin
   raise Exception.Create('Could not determine Primary Key for related entity ' + AObject.ClassName);
 end;
 
-function TDbSet<T>.Hydrate(Reader: IDbReader): T;
+function TDbSet<T>.Hydrate(const Reader: IDbReader): T;
 var
   i: Integer;
   ColName: string;
@@ -828,8 +828,11 @@ begin
 end;
 
 function TDbSet<T>.List: TList<T>;
+var
+  Spec: ISpecification<T>;
 begin
-  Result := List(TSpecification<T>.Create(nil));
+  Spec := TSpecification<T>.Create(nil);
+  Result := List(Spec);
 end;
 
 function TDbSet<T>.List(const ASpec: ISpecification<T>): TList<T>;
@@ -874,13 +877,16 @@ begin
 end;
 
 function TDbSet<T>.List(const AExpression: IExpression): TList<T>;
+var
+  Spec: ISpecification<T>;
 begin
-  Result := List(TSpecification<T>.Create(AExpression));
+  Spec := TSpecification<T>.Create(AExpression);
+  Result := List(Spec);
 end;
 
 function TDbSet<T>.FirstOrDefault(const AExpression: IExpression): T;
 var
-  Spec: TSpecification<T>;
+  Spec: ISpecification<T>;
 begin
   // Optimization: Use LIMIT 1 via Spec
   Spec := TSpecification<T>.Create(AExpression);
@@ -890,7 +896,7 @@ end;
 
 function TDbSet<T>.Any(const AExpression: IExpression): Boolean;
 var
-  Spec: TSpecification<T>;
+  Spec: ISpecification<T>;
 begin
   // Optimization: Use LIMIT 1 via Spec
   Spec := TSpecification<T>.Create(AExpression);
@@ -899,34 +905,44 @@ begin
 end;
 
 function TDbSet<T>.Count(const AExpression: IExpression): Integer;
+var
+  Spec: ISpecification<T>;
 begin
-  Result := Query(TSpecification<T>.Create(AExpression)).Count;
+  Spec := TSpecification<T>.Create(AExpression);
+  Result := Query(Spec).Count;
 end;
 
 function TDbSet<T>.Query(const ASpec: ISpecification<T>): TFluentQuery<T>;
 begin
   Result := TFluentQuery<T>.Create(
     function: TQueryIterator<T>
+    var
+      Data: TList<T>;
     begin
-      var Spec := ASpec;
+      // Execute query - iterator will take ownership of the list
+      Data := Self.List(ASpec);
       Result := TSpecificationQueryIterator<T>.Create(
         function: TList<T>
         begin
-          Result := Self.List(ISpecification<T>(Spec));
-        end
-      );
-    end
-  );
+          Result := Data;
+        end);
+    end);
 end;
 
 function TDbSet<T>.Query(const AExpression: IExpression): TFluentQuery<T>;
+var
+  Spec: ISpecification<T>;
 begin
-  Result := Query(TSpecification<T>.Create(AExpression));
+  Spec := TSpecification<T>.Create(AExpression);
+  Result := Query(Spec);
 end;
 
 function TDbSet<T>.QueryAll: TFluentQuery<T>;
+var
+  Spec: ISpecification<T>;
 begin
-  Result := Query(TSpecification<T>.Create(nil));
+  Spec := TSpecification<T>.Create(nil);
+  Result := Query(Spec);
 end;
 
 end.

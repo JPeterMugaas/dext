@@ -46,7 +46,7 @@ type
     FParent: TObject;
     FPropName: string;
   public
-    constructor Create(AContext: TDbContext; AParent: TObject; const APropName: string);
+    constructor Create(const AContext: TDbContext; const AParent: TObject; const APropName: string);
     procedure Load;
   end;
 
@@ -56,7 +56,7 @@ type
     FParent: TObject;
     FPropName: string;
   public
-    constructor Create(AContext: TDbContext; AParent: TObject; const APropName: string);
+    constructor Create(const AContext: TDbContext; const AParent: TObject; const APropName: string);
     procedure Load;
   end;
 
@@ -65,7 +65,7 @@ type
     FContext: TDbContext;
     FEntity: TObject;
   public
-    constructor Create(AContext: TDbContext; AEntity: TObject);
+    constructor Create(const AContext: TDbContext; const AEntity: TObject);
     function Collection(const APropName: string): ICollectionEntry;
     function Reference(const APropName: string): IReferenceEntry;
   end;
@@ -242,12 +242,14 @@ end;
 
 destructor TDbContext.Destroy;
 begin
+  // WriteLn('DEBUG: TDbContext.Destroy called');
   // Clear ChangeTracker before freeing DbSets (which free entities).
   // This prevents ChangeTracker from holding dangling pointers during its destruction.
   if FChangeTracker <> nil then
     FChangeTracker.Clear;
     
   FCache.Free;
+  FModelBuilder.Free;
   inherited;
 end;
 
@@ -775,7 +777,7 @@ end;
 
 { TCollectionEntry }
 
-constructor TCollectionEntry.Create(AContext: TDbContext; AParent: TObject; const APropName: string);
+constructor TCollectionEntry.Create(const AContext: TDbContext; const AParent: TObject; const APropName: string);
 begin
   inherited Create;
   FContext := AContext;
@@ -891,7 +893,7 @@ end;
 
 { TReferenceEntry }
 
-constructor TReferenceEntry.Create(AContext: TDbContext; AParent: TObject; const APropName: string);
+constructor TReferenceEntry.Create(const AContext: TDbContext; const AParent: TObject; const APropName: string);
 begin
   inherited Create;
   FContext := AContext;
@@ -968,7 +970,7 @@ end;
 
 { TEntityEntry }
 
-constructor TEntityEntry.Create(AContext: TDbContext; AEntity: TObject);
+constructor TEntityEntry.Create(const AContext: TDbContext; const AEntity: TObject);
 begin
   inherited Create;
   FContext := AContext;
