@@ -119,6 +119,8 @@ type
     
     function SaveChanges: Integer;
     procedure Clear;
+    procedure DetachAll;
+    procedure Detach(const AEntity: TObject);
     function ChangeTracker: IChangeTracker;
     
     function GetMapping(AType: PTypeInfo): TObject;
@@ -386,7 +388,7 @@ begin
   if not FCache.ContainsKey(TypeInfo) then
   begin
     // Create the DbSet instance.
-    NewSet := TDbSet<T>.Create(Self);
+    NewSet := TDbSet<T>.Create(IDbContext(Self));
     FCache.Add(TypeInfo, NewSet);
   end;
   
@@ -673,6 +675,29 @@ begin
       DbSet.Clear;
     end;
   end;
+end;
+
+procedure TDbContext.DetachAll;
+var
+  SetIntf: IInterface;
+  DbSet: IDbSet;
+begin
+  // Clear Change Tracker (Stop tracking everything)
+  FChangeTracker.Clear;
+  
+  // Detach all entities in all DbSets
+  for SetIntf in FCache.Values do
+  begin
+    if Supports(SetIntf, IDbSet, DbSet) then
+    begin
+      DbSet.DetachAll;
+    end;
+  end;
+end;
+
+procedure TDbContext.Detach(const AEntity: TObject);
+begin
+  DataSet(AEntity.ClassInfo).Detach(AEntity);
 end;
 
 function TDbContext.ChangeTracker: IChangeTracker;

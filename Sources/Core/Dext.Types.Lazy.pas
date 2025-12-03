@@ -53,25 +53,28 @@ type
     FValue: T;
     FIsValueCreated: Boolean;
     FLock: TCriticalSection;
+    FOwnsValue: Boolean;
     
     function GetIsValueCreated: Boolean;
     function GetValue: TValue;
     function GetValueT: T;
     // function ILazy<T>.GetValue = GetValueT;
   public
-    constructor Create(const AValueFactory: TFunc<T>);
+    constructor Create(const AValueFactory: TFunc<T>; AOwnsValue: Boolean = True);
     destructor Destroy; override;
   end;
 
   TValueLazy<T> = class(TInterfacedObject, ILazy, ILazy<T>)
   private
     FValue: T;
+    FOwnsValue: Boolean;
     function GetIsValueCreated: Boolean;
     function GetValue: TValue;
     function GetValueT: T;
     // function ILazy<T>.GetValue = GetValueT;
   public
-    constructor Create(const AValue: T);
+    constructor Create(const AValue: T; AOwnsValue: Boolean = False);
+    destructor Destroy; override;
   end;
 
 implementation
@@ -81,16 +84,23 @@ uses
 
 { TLazy<T> }
 
-constructor TLazy<T>.Create(const AValueFactory: TFunc<T>);
+constructor TLazy<T>.Create(const AValueFactory: TFunc<T>; AOwnsValue: Boolean);
 begin
   inherited Create;
   FValueFactory := AValueFactory;
   FIsValueCreated := False;
   FLock := TCriticalSection.Create;
+  FOwnsValue := AOwnsValue;
 end;
 
 destructor TLazy<T>.Destroy;
 begin
+  if FIsValueCreated and FOwnsValue then
+  begin
+    case PTypeInfo(TypeInfo(T)).Kind of
+      tkClass: TObject(PPointer(@FValue)^).Free;
+    end;
+  end;
   FLock.Free;
   inherited;
 end;
@@ -128,10 +138,22 @@ end;
 
 { TValueLazy<T> }
 
-constructor TValueLazy<T>.Create(const AValue: T);
+constructor TValueLazy<T>.Create(const AValue: T; AOwnsValue: Boolean);
 begin
   inherited Create;
   FValue := AValue;
+  FOwnsValue := AOwnsValue;
+end;
+
+destructor TValueLazy<T>.Destroy;
+begin
+  if FOwnsValue then
+  begin
+    case PTypeInfo(TypeInfo(T)).Kind of
+      tkClass: TObject(PPointer(@FValue)^).Free;
+    end;
+  end;
+  inherited;
 end;
 
 function TValueLazy<T>.GetIsValueCreated: Boolean;

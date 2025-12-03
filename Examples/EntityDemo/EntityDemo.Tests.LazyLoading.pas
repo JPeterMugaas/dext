@@ -49,25 +49,31 @@ begin
   User.AddressId := Addr.Id;
   FContext.Entities<TUser>.Add(User);
   FContext.SaveChanges;
-  
   // 2. Clear Context to detach entities
-  FContext.Clear;
-  
-  // 3. Load User (without Include)
-  LoadedUser := FContext.Entities<TUser>.Find(User.Id);
-  
-  // 4. Verify Lazy Loading
+  FContext.DetachAll;
+
+  // 3. Load User (without Include) - User object should still be valid!
+  // Note: Since we detached, we must ensure we don't leak memory in this test.
   try
-    if LoadedUser.Address = nil then
-      raise Exception.Create('Address should not be nil (Lazy Loading failed)');
-      
-    if LoadedUser.Address.City <> 'Sleepy Hollow' then
-      raise Exception.Create('Address City mismatch');
-      
-    WriteLn('OK');
-  except
-    on E: Exception do
-      WriteLn('FAILED: ' + E.ClassName + ': ' + E.Message);
+    LoadedUser := FContext.Entities<TUser>.Find(User.Id);
+    
+    // 4. Verify Lazy Loading
+    if LoadedUser <> nil then
+    begin
+      if LoadedUser.Address = nil then
+        raise Exception.Create('Address should not be nil (Lazy Loading failed)');
+
+      if LoadedUser.Address.City <> 'Sleepy Hollow' then
+        raise Exception.Create('Address City mismatch');
+
+      WriteLn('OK');
+    end
+    else
+     raise Exception.Create('User not found User.Id = ' + IntToStr(User.Id));
+  finally
+    // Cleanup detached objects to avoid memory leaks
+    User.Free;
+    Addr.Free;
   end;
 end;
 
@@ -96,9 +102,15 @@ begin
   User2.AddressId := Addr.Id;
   FContext.Entities<TUser>.Add(User2);
   FContext.SaveChanges;
-
-  FContext.Clear;
-  LoadedAddr := FContext.Entities<TAddress>.Find(Addr.Id);
+  var AddrId: Integer := Addr.Id;
+  FContext.DetachAll;
+  
+  // Cleanup detached objects
+  Addr.Free;
+  User1.Free;
+  User2.Free;
+  
+  LoadedAddr := FContext.Entities<TAddress>.Find(AddrId);
   try
     // 1. Verify Automatic Lazy Loading
     if LoadedAddr.Users = nil then

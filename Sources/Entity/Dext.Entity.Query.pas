@@ -896,12 +896,27 @@ function TFluentQuery<T>.Paginate(const APageNumber, APageSize: Integer): IPaged
 var
   Total: Integer;
   Items: TList<T>;
+  SkippedQuery, TakenQuery: TFluentQuery<T>;
 begin
   // 1. Calculate Total Count (Iterates full list)
   Total := Self.Count;
   
   // 2. Fetch Page (Iterates again, but optimized)
-  Items := Self.Skip((APageNumber - 1) * APageSize).Take(APageSize).ToList;
+  // We must carefully manage the intermediate queries created by Skip and Take
+  // Skip returns a new TFluentQuery<T> (SkippedQuery)
+  // Take returns a new TFluentQuery<T> (TakenQuery)
+  
+  SkippedQuery := Self.Skip((APageNumber - 1) * APageSize);
+  try
+    TakenQuery := SkippedQuery.Take(APageSize);
+    try
+      Items := TakenQuery.ToList;
+    finally
+      TakenQuery.Free;
+    end;
+  finally
+    SkippedQuery.Free;
+  end;
   
   Result := TPagedResult<T>.Create(Items, Total, APageNumber, APageSize);
 end;

@@ -86,6 +86,7 @@ begin
     // City should be default ('')
     AssertTrue(Users[0].City = '', 'City should be empty (not loaded)', Format('Found "%s"', [Users[0].City]));
   finally
+    for var Item in Users do Item.Free;
     Users.Free;
   end;
 end;

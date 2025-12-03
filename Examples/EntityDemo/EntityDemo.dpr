@@ -5,6 +5,7 @@
 uses
   FastMM5,
   System.SysUtils,
+  FireDAC.Comp.Client,
   EntityDemo.DbConfig in 'EntityDemo.DbConfig.pas',
   EntityDemo.Tests.AdvancedQuery in 'EntityDemo.Tests.AdvancedQuery.pas',
   EntityDemo.Tests.Base in 'EntityDemo.Tests.Base.pas',
@@ -42,19 +43,19 @@ begin
   // 3. Advanced Query Tests
   RunTest(TAdvancedQueryTest);
   // 4. Composite Keys Tests
-  //RunTest(TCompositeKeyTest);
+  RunTest(TCompositeKeyTest);
   // 5. Explicit Loading Tests
-  //RunTest(TExplicitLoadingTest);
-  // 6. Lazy Loading Tests
-  //RunTest(TLazyLoadingTest);
+  RunTest(TExplicitLoadingTest);
+  // 6. Lazy Loading Tests - AV
+  RunTest(TLazyLoadingTest);
   // 7. Fluent API Tests
-  //RunTest(TFluentAPITest);
+  RunTest(TFluentAPITest);
   // 8. Lazy Execution Tests
-  //RunTest(TLazyExecutionTest);
+  RunTest(TLazyExecutionTest);
   // 9. Bulk Operations Tests
-  //RunTest(TBulkTest);
+  RunTest(TBulkTest);
   // 10. Concurrency Tests
-  // RunTest(TConcurrencyTest); // TODO: Fix Access Violation in this test
+  RunTest(TConcurrencyTest);
   
   // 11. Scaffolding Tests
   //RunTest(TScaffoldingTest);
@@ -100,5 +101,10 @@ begin
     on E: Exception do
       Writeln('❌ Critical Error: ', E.ClassName, ': ', E.Message);
   end;
+  
+  // Ensure FireDAC Manager is closed to release resources
+  if FDManager <> nil then 
+    FDManager.Close;
+
   ReadLn;
 end.

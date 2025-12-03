@@ -57,8 +57,8 @@ type
     function GetValue: T;
   public
     class function Create: Lazy<T>; overload; static;
-    constructor Create(const AValueFactory: TFunc<T>); overload;
-    constructor CreateFrom(const AValue: T);
+    constructor Create(const AValueFactory: TFunc<T>; AOwnsValue: Boolean = True); overload;
+    constructor CreateFrom(const AValue: T; AOwnsValue: Boolean = False);
 
     class operator Implicit(const Value: Lazy<T>): T;
     class operator Implicit(const Value: T): Lazy<T>;
@@ -95,14 +95,14 @@ begin
   Result.FInstance := TValueLazy<T>.Create(Default(T));
 end;
 
-constructor Lazy<T>.Create(const AValueFactory: TFunc<T>);
+constructor Lazy<T>.Create(const AValueFactory: TFunc<T>; AOwnsValue: Boolean);
 begin
-  FInstance := TLazy<T>.Create(AValueFactory);
+  FInstance := TLazy<T>.Create(AValueFactory, AOwnsValue);
 end;
 
-constructor Lazy<T>.CreateFrom(const AValue: T);
+constructor Lazy<T>.CreateFrom(const AValue: T; AOwnsValue: Boolean = False);
 begin
-  FInstance := TValueLazy<T>.Create(AValue);
+  FInstance := TValueLazy<T>.Create(AValue, AOwnsValue);
 end;
 
 function Lazy<T>.GetIsValueCreated: Boolean;

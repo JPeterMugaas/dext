@@ -50,6 +50,7 @@ begin
   U3.Age := 17;
   U3.Email := 'bob@example.com';
   FContext.Entities<TUser>.Add(U3);
+  FContext.SaveChanges;
 
   LogSuccess('Test data inserted (3 users)');
   Log('');
@@ -160,6 +161,8 @@ begin
   
   UWithAddr.Address := Addr; // Cascade insert should handle this
   FContext.Entities<TUser>.Add(UWithAddr);
+  FContext.SaveChanges;
+  // Addr is now tracked by Context (Cascade), do not free manually!
   LogSuccess(Format('Inserted user with address ID: %d', [UWithAddr.AddressId.GetValueOrDefault]));
   
   // Fetch with Include

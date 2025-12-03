@@ -126,14 +126,15 @@ constructor TAddress.Create;
 begin
   inherited Create;
   // FUsers is initialized as empty Lazy (default record)
-  // For new objects created by user:
-  FUsers := Lazy<TList<TUser>>.CreateFrom(TList<TUser>.Create);
+  // For new objects created by user, use CreateFrom with AOwnsValue=True so Lazy<T> frees the list.
+  FUsers := Lazy<TList<TUser>>.CreateFrom(TList<TUser>.Create, True);
 end;
 
 destructor TAddress.Destroy;
 begin
-  if FUsers.IsValueCreated then
-    FUsers.Value.Free;
+  // FUsers.Value is now freed by Lazy<T> if it owns it.
+  // if FUsers.IsValueCreated then
+  //   FUsers.Value.Free;
   inherited;
 end;
 

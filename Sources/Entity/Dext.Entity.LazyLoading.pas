@@ -26,18 +26,36 @@ type
     class procedure Inject(AContext: IDbContext; AEntity: TObject);
   end;
 
+  ILazyInvokeHandler = interface(IInterface)
+    ['{285AFE89-2FCC-41CF-8A9F-E2E9DAE069C8}']
+    procedure OnInvoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
+  end;
+
+  /// <summary>
+  ///   Custom TVirtualInterface that owns the handler object.
+  /// </summary>
+  TOwningVirtualInterface = class(TVirtualInterface)
+  private
+    FHandler: ILazyInvokeHandler;
+  public
+    constructor Create(AInterface: TRttiInterfaceType; const AHandler:
+      ILazyInvokeHandler; AInvokeEvent: TVirtualInterfaceInvokeEvent);
+    destructor Destroy; override;
+  end;
+
   /// <summary>
   ///   Handles the invocation of ILazy<T> methods (GetValue, GetIsValueCreated).
   /// </summary>
-  TLazyInvokeHandler = class(TInterfacedObject)
+  TLazyInvokeHandler = class(TInterfacedObject, ILazyInvokeHandler)
   private
-    FContext: IDbContext;
+    FContextPtr: Pointer;
     FEntity: TObject;
     FPropName: string;
     FLoaded: Boolean;
     FValue: TValue;
     FIsCollection: Boolean;
     
+    function GetDbContext: IDbContext;
     procedure Invoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
   public
     constructor Create(AContext: IDbContext; AEntity: TObject; const APropName: string; AIsCollection: Boolean);
@@ -136,6 +154,22 @@ begin
   // No-op
 end;
 
+{ TOwningVirtualInterface }
+
+constructor TOwningVirtualInterface.Create(AInterface: TRttiInterfaceType;
+  const AHandler: ILazyInvokeHandler; AInvokeEvent:
+  TVirtualInterfaceInvokeEvent);
+begin
+  inherited Create(AInterface.Handle, AInvokeEvent);
+  FHandler := AHandler;
+end;
+
+destructor TOwningVirtualInterface.Destroy;
+begin
+  FHandler := nil;
+  inherited;
+end;
+
 { TLazyInjector }
 
 class procedure TLazyInjector.Inject(AContext: IDbContext; AEntity: TObject);
@@ -163,9 +197,10 @@ var
   InterfaceType: TRttiInterfaceType;
   PropName: string;
   IsCollection: Boolean;
-  Handler: TLazyInvokeHandler;
+  Handler: ILazyInvokeHandler;
   LazyIntf: IInterface;
-  RecordPtr: Pointer;
+  LazyVal: TValue;
+  IntfVal: TValue;
 begin
   // 1. Determine Property Name from Field Name (FAddress -> Address)
   PropName := AField.Name;
@@ -193,24 +228,51 @@ begin
   
   // 5. Create TVirtualInterface using method reference (NOT closure)
   // This avoids the closure activation record leak
-  if not Supports(
-    TVirtualInterface.Create(InterfaceType.Handle, Handler.OnInvoke),
-    InterfaceType.GUID, 
-    LazyIntf) then
-  begin
-    Handler.Free;
-    Exit;
+  // Use TOwningVirtualInterface to ensure Handler is freed when the interface is released
+  
+  // Create the object first. It has RefCount = 0 (if TInterfacedObject behavior).
+  // But TVirtualInterface might behave differently.
+  // We cast to IInterface immediately to ensure proper ref counting if it supports it.
+  // However, TOwningVirtualInterface is a class.
+  
+  var OwningIntf: TOwningVirtualInterface;
+  OwningIntf := TOwningVirtualInterface.Create(InterfaceType, Handler, 
+    procedure(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue)
+    begin
+      Handler.OnInvoke(Method, Args, Result);
+    end);
+
+  try
+    if not Supports(OwningIntf, InterfaceType.GUID, LazyIntf) then
+    begin
+      // If Supports fails, LazyIntf is nil.
+      // OwningIntf is still alive. We must free it.
+      OwningIntf.Free;
+      Exit;
+    end;
+  except
+    OwningIntf.Free;
+    raise;
   end;
   
-  // 6. Set the interface into the record's FInstance field
-  RecordPtr := PByte(AEntity) + AField.Offset;
+  if LazyIntf = nil then
+  begin
+    Handler := nil; // Should not happen if Create succeeds
+    Exit;
+  end;
+
+  // 6. Assign interface to Lazy<T>.FInstance
+  // We need to get the record, set the field, and set it back
+  LazyVal := AField.GetValue(AEntity);
   
-  // Set the interface pointer directly (FInstance is at offset 0 in Lazy<T>)
-  PPointer(RecordPtr)^ := Pointer(LazyIntf);
+  // Create TValue with correct interface type to avoid EInvalidCast
+  TValue.Make(@LazyIntf, InterfaceType.Handle, IntfVal);
   
-  // Increment reference count since we're storing it
-  if LazyIntf <> nil then
-    LazyIntf._AddRef;
+  // Set FInstance on the record
+  InstanceField.SetValue(LazyVal.GetReferenceToRawData, IntfVal);
+  
+  // Set the record back to the entity
+  AField.SetValue(AEntity, LazyVal);
 end;
 
 { TLazyInvokeHandler }
@@ -218,11 +280,16 @@ end;
 constructor TLazyInvokeHandler.Create(AContext: IDbContext; AEntity: TObject; const APropName: string; AIsCollection: Boolean);
 begin
   inherited Create;
-  FContext := AContext;
+  FContextPtr := Pointer(AContext);
   FEntity := AEntity;
   FPropName := APropName;
   FIsCollection := AIsCollection;
   FLoaded := False;
+end;
+
+function TLazyInvokeHandler.GetDbContext: IDbContext;
+begin
+  Result := IDbContext(FContextPtr);
 end;
 
 procedure TLazyInvokeHandler.OnInvoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
@@ -256,6 +323,8 @@ var
   TargetType: PTypeInfo;
   TargetSet: IDbSet;
   LoadedObj: TObject;
+  IntVal: Integer;
+  ExpectedClass: TClass;
 begin
   if Method.Name = 'GetIsValueCreated' then
   begin
@@ -296,7 +365,7 @@ begin
                 
                 if ItemType <> nil then
                 begin
-                    ChildSet := FContext.DataSet(ItemType.Handle);
+                    ChildSet := GetDbContext.DataSet(ItemType.Handle);
                     
                     ParentName := FEntity.ClassName;
                     if ParentName.StartsWith('T') then Delete(ParentName, 1, 1);
@@ -306,12 +375,11 @@ begin
                     P := ItemType.GetProperty(FKPropName);
                     if P <> nil then
                     begin
-                        PKVal := FContext.DataSet(FEntity.ClassInfo).GetEntityId(FEntity);
+                        PKVal := GetDbContext.DataSet(FEntity.ClassInfo).GetEntityId(FEntity);
                         
                         PropHelper := TPropExpression.Create(FKPropName);
                         
                         // Try to convert PK to Integer if possible, as most FKs are ints
-                        var IntVal: Integer;
                         if TryStrToInt(PKVal, IntVal) then
                            Expr := PropHelper = IntVal
                         else
@@ -336,7 +404,7 @@ begin
                                 // Check if object is instance of expected type
                                 if ItemType.AsInstance <> nil then
                                 begin
-                                  var ExpectedClass := ItemType.AsInstance.MetaclassType;
+                                  ExpectedClass := ItemType.AsInstance.MetaclassType;
                                   if not (Obj is ExpectedClass) then
                                     Continue;
                                 end;
@@ -370,7 +438,7 @@ begin
                     Prop := Ctx.GetType(FEntity.ClassType).GetProperty(FPropName);
                     TargetType := Prop.PropertyType.Handle;
                     
-                    TargetSet := FContext.DataSet(TargetType);
+                    TargetSet := GetDbContext.DataSet(TargetType);
                     LoadedObj := TargetSet.FindObject(FKVal.AsVariant);
                     
                     FValue := TValue.From(LoadedObj);

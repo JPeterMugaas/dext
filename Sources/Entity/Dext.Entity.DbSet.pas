@@ -25,7 +25,7 @@ uses
 type
   TDbSet<T: class> = class(TInterfacedObject, IDbSet<T>, IDbSet)
   private
-    FContext: IDbContext;
+    FContextPtr: Pointer;
     FRttiContext: TRttiContext; // Keep RTTI context alive
     FTableName: string;
     FPKColumns: TList<string>; // List of PK Column Names
@@ -33,6 +33,9 @@ type
     FColumns: TDictionary<string, string>;      // Property Name -> Column Name
     FIdentityMap: TObjectDictionary<string, T>; // ID (String) -> Entity. Owns objects.
     FMap: TEntityMap;
+
+    function GetFContext: IDbContext;
+    property FContext: IDbContext read GetFContext;
 
     procedure MapEntity;
     function Hydrate(const Reader: IDbReader): T;
@@ -43,7 +46,7 @@ type
     function GetRelatedId(const AObject: TObject): TValue;
     procedure DoLoadIncludes(const AEntities: TList<T>; const AIncludes: TArray<string>);
   public
-    constructor Create(const AContext: IDbContext);
+    constructor Create(const AContext: IDbContext); reintroduce;
     destructor Destroy; override;
 
     function GetTableName: string;
@@ -58,10 +61,13 @@ type
     procedure PersistRemove(const AEntity: TObject);
     function GenerateCreateTableScript: string;
     procedure Clear;
+    procedure DetachAll;
+    procedure Detach(const AEntity: TObject); overload;
 
     procedure Add(const AEntity: T); overload;
     procedure Update(const AEntity: T); overload;
     procedure Remove(const AEntity: T); overload;
+    procedure Detach(const AEntity: T); overload;
     function Find(const AId: Variant): T; overload;
     function Find(const AId: array of Integer): T; overload;
 
@@ -96,13 +102,19 @@ uses
 
 { TDbSet<T> }
 
+function TDbSet<T>.GetFContext: IDbContext;
+begin
+  Result := IDbContext(FContextPtr);
+end;
+
 constructor TDbSet<T>.Create(const AContext: IDbContext);
 begin
   inherited Create;
-  FContext := AContext;
+  FContextPtr := Pointer(AContext);
   FProps := TDictionary<string, TRttiProperty>.Create;
   FColumns := TDictionary<string, string>.Create;
   FPKColumns := TList<string>.Create;
+  FRttiContext := TRttiContext.Create;
   // Identity Map owns the entity instances to prevent memory leaks.
   // Entities are freed when the DbSet (and Context) is destroyed.
   FIdentityMap := TObjectDictionary<string, T>.Create([doOwnsValues]);
@@ -111,6 +123,7 @@ end;
 
 destructor TDbSet<T>.Destroy;
 begin
+  FRttiContext.Free;
   FIdentityMap.Free;
   FProps.Free;
   FColumns.Free;
@@ -120,14 +133,13 @@ end;
 
 procedure TDbSet<T>.MapEntity;
 var
-  Typ: TRttiType;
   Attr: TCustomAttribute;
-  Prop: TRttiProperty;
   ColName: string;
-  PropMap: TPropertyMap;
   IsMapped: Boolean;
+  Prop: TRttiProperty;
+  PropMap: TPropertyMap;
+  Typ: TRttiType;
 begin
-  FRttiContext := TRttiContext.Create;
   Typ := FRttiContext.GetType(T);
   
   // Retrieve Fluent Mapping if available
@@ -319,19 +331,23 @@ begin
   // but we can just scan its properties for [PK] or 'Id'.
 
   Ctx := TRttiContext.Create;
-  Typ := Ctx.GetType(AObject.ClassType);
+  try
+    Typ := Ctx.GetType(AObject.ClassType);
 
-  for Prop in Typ.GetProperties do
-  begin
-    for Attr in Prop.GetAttributes do
-      if Attr is PKAttribute then
-        Exit(Prop.GetValue(AObject));
+    for Prop in Typ.GetProperties do
+    begin
+      for Attr in Prop.GetAttributes do
+        if Attr is PKAttribute then
+          Exit(Prop.GetValue(AObject));
+    end;
+
+    // Fallback to 'Id'
+    Prop := Typ.GetProperty('Id');
+    if Prop <> nil then
+      Exit(Prop.GetValue(AObject));
+  finally
+    Ctx.Free;
   end;
-
-  // Fallback to 'Id'
-  Prop := Typ.GetProperty('Id');
-  if Prop <> nil then
-    Exit(Prop.GetValue(AObject));
 
   raise Exception.Create('Could not determine Primary Key for related entity ' + AObject.ClassName);
 end;
@@ -441,6 +457,11 @@ begin
   Remove(T(AEntity));
 end;
 
+procedure TDbSet<T>.Detach(const AEntity: TObject);
+begin
+  Detach(T(AEntity));
+end;
+
 procedure TDbSet<T>.Add(const AEntity: T);
 begin
   FContext.ChangeTracker.Track(AEntity, esAdded);
@@ -454,6 +475,15 @@ end;
 procedure TDbSet<T>.Remove(const AEntity: T);
 begin
   FContext.ChangeTracker.Track(AEntity, esDeleted);
+end;
+
+procedure TDbSet<T>.Detach(const AEntity: T);
+var
+  Id: string;
+begin
+  Id := GetEntityId(AEntity);
+  FIdentityMap.ExtractPair(Id);
+  FContext.ChangeTracker.Remove(AEntity);
 end;
 
 procedure TDbSet<T>.PersistAdd(const AEntity: TObject);
@@ -663,19 +693,23 @@ begin
       
     // Update Version property in memory if applicable
     Ctx := TRttiContext.Create;
-    Typ := Ctx.GetType(T);
-    for Prop in Typ.GetProperties do
-    begin
-      for Attr in Prop.GetAttributes do
+    try
+      Typ := Ctx.GetType(T);
+      for Prop in Typ.GetProperties do
       begin
-        if Attr is VersionAttribute then
+        for Attr in Prop.GetAttributes do
         begin
-          Val := Prop.GetValue(Pointer(AEntity));
-          if Val.IsEmpty then NewVer := 1 else NewVer := Val.AsInteger + 1;
-          Prop.SetValue(Pointer(AEntity), NewVer);
-          Break;
+          if Attr is VersionAttribute then
+          begin
+            Val := Prop.GetValue(Pointer(AEntity));
+            if Val.IsEmpty then NewVer := 1 else NewVer := Val.AsInteger + 1;
+            Prop.SetValue(Pointer(AEntity), NewVer);
+            Break;
+          end;
         end;
       end;
+    finally
+      Ctx.Free;
     end;
     
   finally
@@ -726,6 +760,19 @@ end;
 procedure TDbSet<T>.Clear;
 begin
   FIdentityMap.Clear;
+end;
+
+procedure TDbSet<T>.DetachAll;
+var
+  Key: string;
+  Keys: TArray<string>;
+begin
+  // Detach all entities without destroying them.
+  Keys := FIdentityMap.Keys.ToArray;
+  for Key in Keys do
+  begin
+    FIdentityMap.ExtractPair(Key);
+  end;
 end;
 
 function TDbSet<T>.ListObjects(const AExpression: IExpression): TList<TObject>;
@@ -891,7 +938,12 @@ begin
   // Optimization: Use LIMIT 1 via Spec
   Spec := TSpecification<T>.Create(AExpression);
   Spec.Take(1);
-  Result := Query(Spec).FirstOrDefault;
+  var Q := Query(Spec);
+  try
+    Result := Q.FirstOrDefault;
+  finally
+    Q.Free;
+  end;
 end;
 
 function TDbSet<T>.Any(const AExpression: IExpression): Boolean;
@@ -901,7 +953,12 @@ begin
   // Optimization: Use LIMIT 1 via Spec
   Spec := TSpecification<T>.Create(AExpression);
   Spec.Take(1);
-  Result := Query(Spec).Any;
+  var Q := Query(Spec);
+  try
+    Result := Q.Any;
+  finally
+    Q.Free;
+  end;
 end;
 
 function TDbSet<T>.Count(const AExpression: IExpression): Integer;
@@ -909,7 +966,12 @@ var
   Spec: ISpecification<T>;
 begin
   Spec := TSpecification<T>.Create(AExpression);
-  Result := Query(Spec).Count;
+  var Q := Query(Spec);
+  try
+    Result := Q.Count;
+  finally
+    Q.Free;
+  end;
 end;
 
 function TDbSet<T>.Query(const ASpec: ISpecification<T>): TFluentQuery<T>;

@@ -43,6 +43,8 @@ type
     function GetTableName: string;
     function GenerateCreateTableScript: string;
     procedure Clear;
+    procedure DetachAll;
+    procedure Detach(const AEntity: TObject);
     
     // Non-generic query support
     function ListObjects(const AExpression: IExpression): TList<TObject>;
@@ -70,6 +72,7 @@ type
     procedure Add(const AEntity: T);
     procedure Update(const AEntity: T);
     procedure Remove(const AEntity: T);
+    procedure Detach(const AEntity: T); overload;
     function Find(const AId: Variant): T; overload;
     function Find(const AId: array of Integer): T; overload;
 
@@ -155,6 +158,17 @@ type
     ///   Detaches all entities.
     /// </summary>
     procedure Clear;
+
+    /// <summary>
+    ///   Detaches all entities from the context without destroying them.
+    ///   The caller becomes responsible for freeing the entities.
+    /// </summary>
+    procedure DetachAll;
+
+    /// <summary>
+    ///   Detaches a specific entity from the context.
+    /// </summary>
+    procedure Detach(const AEntity: TObject);
 
     /// <summary>
     ///   Access the Change Tracker.
