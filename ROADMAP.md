@@ -139,7 +139,31 @@ Abaixo, comparamos o Dext com as principais alternativas do mercado Delphi e sua
 
 ---
 
-## 📅 Roadmap Detalhado para v1.0
+## 📅 Roadmaps Específicos
+
+O desenvolvimento do Dext é dividido em três grandes áreas. Consulte os roadmaps específicos para detalhes:
+
+### 1. [🌐 Web Framework Roadmap](Docs/WEB_ROADMAP.md)
+Foco em APIs, MVC, Views, OpenTelemetry e DX.
+
+### 2. [🗺️ ORM Roadmap](Docs/ORM_ROADMAP.md)
+Foco no Dext Entity, banco de dados, performance e queries.
+
+### 3. [🏗️ Infrastructure Roadmap](Docs/INFRA_ROADMAP.md)
+Foco em performance extrema (http.sys, epoll), gerenciamento de memória e otimizações de baixo nível.
+
+### 4. [☁️ Cloud & Microservices Roadmap](Docs/CLOUD_ROADMAP.md)
+Foco em orquestração (Aspire-like), service discovery, resiliência e componentes distribuídos.
+
+### 5. [🧠 AI Roadmap](Docs/AI_ROADMAP.md)
+Foco em GenAI, Semantic Kernel, RAG e integração com LLMs.
+
+### 6. [🛠️ IDE Integration Roadmap](Docs/IDE_ROADMAP.md)
+Foco em produtividade, code intelligence, wizards e integração com a IDE do Delphi.
+
+---
+
+## 📅 Roadmap Geral (High Level)
 
 ### 1. Core & Arquitetura (✅ Concluído)
 - [x] **IHost / IWebApplication**: Abstração do ciclo de vida da aplicação.
@@ -214,7 +238,7 @@ Abaixo, comparamos o Dext com as principais alternativas do mercado Delphi e sua
   - `TDbConfig` helper class
   - Suporte a múltiplos providers
   - Configuração via código ou environment variables
-- [ ] **Migrations**: Sistema de migração de schema (planejado para v1.1).
+- [ ] **Migrations**: Sistema de migração de schema (planejado para v1.0).
 
 ### 6. Ecossistema & Tooling (📅 Planejado para v1.1)
 - [ ] **CLI**: Ferramenta de linha de comando (`dext new webapi`).

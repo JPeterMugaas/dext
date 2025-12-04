@@ -152,6 +152,51 @@ Melhorar como os dados relacionados são carregados e gerenciar ciclo de vida da
 - [ ] **CLI Tools**: Comandos para gerar migrations e atualizar banco.
 - [ ] **Scaffolding**: Gerar classes de entidade a partir de banco existente (Db-First).
 
+### 🚀 Fase 5: Performance & Observability (Novo)
+Foco em otimização extrema, gerenciamento de memória e observabilidade.
+
+#### 1. Benchmark & RTTI Optimization
+Otimização do startup e overhead de runtime.
+- [ ] **Pre-Build RTTI Cache**: Scanner de classes que gera cache de metadados.
+  - Evitar processamento de RTTI em runtime para cada startup.
+  - Carregar mapeamento e converters de um cache binário ou código gerado.
+- [ ] **Converter Mapping Cache**: Mapeamento otimizado de converters para Load/Save.
+- [ ] **FireDAC Phys API**: Reescrever driver usando `IFDPhysCommand`/`IFDPhysConnection` para performance máxima.
+
+#### 2. Managed Container Types (Memory Safety)
+Resolução definitiva para memory leaks e gerenciamento de ciclo de vida.
+- [ ] **Smart Lists (`IList<T>`)**: Implementação de listas baseadas em interfaces.
+  - Gerenciamento automático de memória (ref-counted ou scope-based).
+  - Substituição de `TObjectList<T>` crua nas APIs públicas (`Entities`, `Query.List`).
+- [ ] **Expression Support**: Suporte a expressions diretamente nas listas (`List.Where(x => x.Age > 18)`).
+
+#### 3. Framework Garbage Collector
+Sistema de limpeza de objetos em background para alta performance em servidores HTTP.
+- [ ] **Background Disposal**: Serviço que coleta objetos marcados para destruição.
+- [ ] **Deferred Destruction**: Remove o peso da destruição do thread principal de requisição.
+
+#### 4. Telemetry & Observability
+Suporte nativo a instrumentação para monitoramento em produção.
+- [ ] **OpenTelemetry Support**: Implementação do padrão OpenTelemetry.
+  - Tracing de queries e transações.
+  - Métricas de performance (tempo de query, pool connections).
+- [ ] **Database Agents**: Coletores de métricas específicos para bancos.
+- [ ] **Web Integration**: Correlação de traces entre Web Framework e ORM.
+
+#### 5. Enterprise & Advanced Data Features
+Funcionalidades essenciais para sistemas corporativos complexos.
+- [ ] **Multi-Tenancy**: Suporte nativo a isolamento de dados por Tenant (Coluna discriminadora ou Schema por Tenant).
+- [ ] **Spatial Data (GIS)**: Tipos de dados geográficos (`Point`, `Polygon`) com suporte a queries espaciais (PostGIS, SQL Server Spatial).
+- [ ] **Auditing & History**:
+  - **Temporal Tables**: Suporte a tabelas temporais do sistema (SQL Server/MariaDB).
+  - **Audit Log**: Sistema de log de alterações automático (Quem mudou, Quando, Valor Antigo/Novo).
+- [ ] **Soft Delete**: Suporte nativo a exclusão lógica (`IsDeleted`) transparente nas queries.
+
+#### 5. Async Support (Fluent Tasks API)
+Integração transparente de operações assíncronas.
+- [ ] **Fluent Tasks API**: API fluente para orquestração de tasks.
+- [ ] **Web & ORM Integration**: Suporte nativo em Controllers e DbContext.
+
 ---
 
 ## 🗄️ Roadmap de Suporte a Bancos de Dados
@@ -160,12 +205,9 @@ Melhorar como os dados relacionados são carregados e gerenciar ciclo de vida da
 - ✅ **SQLite**: Suporte completo e testado
 - ✅ **PostgreSQL**: Suporte completo e validado (incluindo RETURNING clause, Nullable support)
 - ✅ **Firebird**: Suporte completo e validado
+- ✅ **SQL Server**: Suporte completo e validado (incluindo `OUTPUT INSERTED`, `IF NOT EXISTS`)
 
 ### Expansão Planejada
-
-#### Prioridade 1 - Crítica (Corporativo)
-4. **SQL Server**
-   - **Status**: ⚠️ **Implementado, aguardando validação de integração**
 
 #### Prioridade 2 - Comunidade (Help Wanted)
 5. **Oracle**
