@@ -8,6 +8,8 @@ uses
   Dext.Entity.Attributes;
 
 type
+  TReturningPosition = (rpAtEnd, rpBeforeValues);
+
   /// <summary>
   ///   Abstracts database-specific SQL syntax differences.
   /// </summary>
@@ -25,6 +27,10 @@ type
     // New methods for RETURNING clause support
     function SupportsInsertReturning: Boolean;
     function GetReturningSQL(const AColumnName: string): string;
+    function GetReturningPosition: TReturningPosition;
+
+    // Paging support
+    function RequiresOrderByForPaging: Boolean;
   end;
 
   /// <summary>
@@ -43,6 +49,9 @@ type
     
     function SupportsInsertReturning: Boolean; virtual;
     function GetReturningSQL(const AColumnName: string): string; virtual;
+    function GetReturningPosition: TReturningPosition; virtual;
+
+    function RequiresOrderByForPaging: Boolean; virtual;
   end;
 
   /// <summary>
@@ -101,6 +110,11 @@ type
     function GetColumnType(ATypeInfo: PTypeInfo; AIsAutoInc: Boolean = False): string; override;
     function GetLastInsertIdSQL: string; override;
     function GetCreateTableSQL(const ATableName, ABody: string): string; override;
+    
+    function SupportsInsertReturning: Boolean; override;
+    function GetReturningSQL(const AColumnName: string): string; override;
+    function GetReturningPosition: TReturningPosition; override;
+    function RequiresOrderByForPaging: Boolean; override;
   end;
 
   /// <summary>
@@ -415,9 +429,30 @@ end;
 
 function TSQLServerDialect.GetCreateTableSQL(const ATableName, ABody: string): string;
 begin
-  // SQL Server doesn't support IF NOT EXISTS in CREATE TABLE syntax directly (needs IF OBJECT_ID...)
-  // We keep it simple for now.
-  Result := Format('CREATE TABLE %s (%s);', [ATableName, ABody]);
+  // SQL Server uses IF NOT EXISTS with OBJECT_ID check
+  Result := Format('IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N''%s'') AND type = ''U'') ' +
+                   'CREATE TABLE %s (%s);', [ATableName, ATableName, ABody]);
+end;
+
+function TSQLServerDialect.SupportsInsertReturning: Boolean;
+begin
+  Result := True; // SQL Server supports OUTPUT INSERTED
+end;
+
+function TSQLServerDialect.GetReturningSQL(const AColumnName: string): string;
+begin
+  // SQL Server uses OUTPUT INSERTED.column_name instead of RETURNING
+  Result := 'OUTPUT INSERTED.' + QuoteIdentifier(AColumnName);
+end;
+
+function TSQLServerDialect.GetReturningPosition: TReturningPosition;
+begin
+  Result := rpBeforeValues;
+end;
+
+function TSQLServerDialect.RequiresOrderByForPaging: Boolean;
+begin
+  Result := True;
 end;
 
 { TMySQLDialect }
@@ -568,6 +603,16 @@ end;
 function TBaseDialect.GetReturningSQL(const AColumnName: string): string;
 begin
   Result := '';
+end;
+
+function TBaseDialect.GetReturningPosition: TReturningPosition;
+begin
+  Result := rpAtEnd;
+end;
+
+function TBaseDialect.RequiresOrderByForPaging: Boolean;
+begin
+  Result := False;
 end;
 
 { TPostgreSQLDialect }

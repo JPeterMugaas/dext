@@ -244,7 +244,6 @@ end;
 
 destructor TDbContext.Destroy;
 begin
-  // WriteLn('DEBUG: TDbContext.Destroy called');
   // Clear ChangeTracker before freeing DbSets (which free entities).
   // This prevents ChangeTracker from holding dangling pointers during its destruction.
   if FChangeTracker <> nil then
@@ -980,16 +979,11 @@ begin
 
   
   // Find Child
-  WriteLn('DEBUG: Loading Reference ' + FPropName + ' FK=' + FKVal.ToString);
   ChildObj := DbSet.FindObject(FKVal.AsVariant);
-  WriteLn('DEBUG: ChildObj found: ' + BoolToStr(ChildObj <> nil, True));
-  
   if ChildObj <> nil then
   begin
-    WriteLn('DEBUG: Setting Value type: ' + ChildObj.ClassName);
     // The TClassToClassConverter will handle the conversion from TObject to TAddress
     Prop.SetValue(Pointer(FParent), ChildObj);
-    WriteLn('DEBUG: Value Set');
   end;
 end;
 

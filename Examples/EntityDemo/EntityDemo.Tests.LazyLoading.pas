@@ -54,9 +54,8 @@ begin
 
   // 3. Load User (without Include) - User object should still be valid!
   // Note: Since we detached, we must ensure we don't leak memory in this test.
+  LoadedUser := FContext.Entities<TUser>.Find(User.Id);
   try
-    LoadedUser := FContext.Entities<TUser>.Find(User.Id);
-    
     // 4. Verify Lazy Loading
     if LoadedUser <> nil then
     begin
@@ -72,6 +71,11 @@ begin
      raise Exception.Create('User not found User.Id = ' + IntToStr(User.Id));
   finally
     // Cleanup detached objects to avoid memory leaks
+    if LoadedUser <> nil then
+    begin
+      LoadedUser.Address.Free;
+      LoadedUser.Free;
+    end;
     User.Free;
     Addr.Free;
   end;

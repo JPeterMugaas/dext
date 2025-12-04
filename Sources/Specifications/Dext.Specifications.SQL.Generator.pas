@@ -929,6 +929,18 @@ begin
     // Paging
     if ASpec.IsPagingEnabled then
     begin
+      // SQL Server requires ORDER BY when using OFFSET/FETCH
+      // If no ORDER BY was specified, add a default one ONLY if dialect requires it
+      if (Length(OrderBy) = 0) and FDialect.RequiresOrderByForPaging then
+      begin
+        SB.Append(' ORDER BY ');
+        // Use first column or (SELECT NULL) as fallback
+        if Length(SelectedCols) > 0 then
+          SB.Append(FDialect.QuoteIdentifier(SelectedCols[0]))
+        else
+          SB.Append('(SELECT NULL)');
+      end;
+      
       Skip := ASpec.GetSkip;
       Take := ASpec.GetTake;
       Result := SB.ToString + ' ' + FDialect.GeneratePaging(Skip, Take);

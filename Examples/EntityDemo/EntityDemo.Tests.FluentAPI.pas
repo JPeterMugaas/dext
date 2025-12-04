@@ -158,19 +158,19 @@ begin
   var Addr := TAddress.Create;
   Addr.Street := 'Main St';
   Addr.City := 'New York';
-  
+
   UWithAddr.Address := Addr; // Cascade insert should handle this
   FContext.Entities<TUser>.Add(UWithAddr);
   FContext.SaveChanges;
   // Addr is now tracked by Context (Cascade), do not free manually!
   LogSuccess(Format('Inserted user with address ID: %d', [UWithAddr.AddressId.GetValueOrDefault]));
-  
+
   // Fetch with Include
   var UsersWithAddr := FContext.Entities<TUser>.List(
     Specification.Where<TUser>(UserEntity.Id = UWithAddr.Id)
       .Include('Address')
   );
-  
+
   AssertTrue(UsersWithAddr.Count = 1, 'Include count', 'Expected 1 user');
   if UsersWithAddr.Count > 0 then
   begin
@@ -181,7 +181,7 @@ begin
       LogError('Include: Address NOT loaded (nil)');
   end;
   UsersWithAddr.Free;
-
+  Addr.Free;
   Log('');
   Log('📖 Available Fluent Operators:');
   Log('------------------------------');

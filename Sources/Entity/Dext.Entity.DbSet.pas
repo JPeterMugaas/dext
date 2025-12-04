@@ -123,7 +123,6 @@ end;
 
 destructor TDbSet<T>.Destroy;
 begin
-  WriteLn('DEBUG: TDbSet<' + T.ClassName + '>.Destroy');
   FRttiContext.Free;
   FIdentityMap.Free;
   FProps.Free;
@@ -429,8 +428,6 @@ begin
   begin
     ColName := Reader.GetColumnName(i);
     Val := Reader.GetValue(i);
-    
-    // WriteLn(Format('DEBUG: Hydrate Col: %s, Val: %s', [ColName, Val.ToString]));
 
     if FProps.TryGetValue(ColName.ToLower, Prop) then
     begin
@@ -512,8 +509,28 @@ begin
     
     if UseReturning then
     begin
-      // Append RETURNING clause
-      Sql := Sql + ' ' + FContext.Dialect.GetReturningSQL(FPKColumns[0]);
+      // Check where to place the RETURNING clause
+      var ReturningClause := FContext.Dialect.GetReturningSQL(FPKColumns[0]);
+      
+      if FContext.Dialect.GetReturningPosition = rpBeforeValues then
+      begin
+        // For SQL Server: OUTPUT INSERTED.Id BEFORE VALUES
+        var ValuesPos := Pos(' VALUES ', UpperCase(Sql));
+        if ValuesPos > 0 then
+        begin
+          Insert(' ' + ReturningClause + ' ', Sql, ValuesPos);
+        end
+        else
+        begin
+          // Should not happen for standard INSERT, but fallback to append
+          Sql := Sql + ' ' + ReturningClause;
+        end;
+      end
+      else
+      begin
+        // For PostgreSQL/Firebird: RETURNING Id AFTER VALUES
+        Sql := Sql + ' ' + ReturningClause;
+      end;
     end;
 
     Cmd := FContext.Connection.CreateCommand(Sql) as IDbCommand;
@@ -522,9 +539,7 @@ begin
     for var Pair in Generator.Params do
     begin
       try
-        // Debug logging
-        WriteLn(Format('DEBUG: Param %s, Type: %s', [Pair.Key, Pair.Value.TypeInfo.Name]));
-        
+
         Cmd.AddParam(Pair.Key, Pair.Value);
       except
         on E: Exception do

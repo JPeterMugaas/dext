@@ -128,7 +128,7 @@ implementation
 constructor TAddress.Create;
 begin
   inherited Create;
-  WriteLn('DEBUG: TAddress.Create');
+  //WriteLn('DEBUG: TAddress.Create');
   // FUsers is initialized as empty Lazy (default record)
   // For new objects created by user, use CreateFrom with AOwnsValue=True so Lazy<T> frees the list.
   FUsers := Lazy<TList<TUser>>.CreateFrom(TList<TUser>.Create, True);
@@ -136,7 +136,7 @@ end;
 
 destructor TAddress.Destroy;
 begin
-  WriteLn('DEBUG: TAddress.Destroy ' + FStreet);
+  //WriteLn('DEBUG: TAddress.Destroy ' + FStreet);
   // FUsers.Value is now freed by Lazy<T> if it owns it.
   // if FUsers.IsValueCreated then
   //   FUsers.Value.Free;
@@ -146,7 +146,7 @@ end;
 class function TAddress.NewInstance: TObject;
 begin
   Result := inherited NewInstance;
-  WriteLn('DEBUG: TAddress.NewInstance');
+  //WriteLn('DEBUG: TAddress.NewInstance');
 end;
 
 function TAddress.GetUsers: TList<TUser>;
@@ -169,7 +169,7 @@ end;
 
 destructor TUser.Destroy;
 begin
-  WriteLn('DEBUG: TUser.Destroy ' + FName);
+  //WriteLn('DEBUG: TUser.Destroy ' + FName);
   inherited;
 end;
 

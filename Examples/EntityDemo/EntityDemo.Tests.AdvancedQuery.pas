@@ -71,12 +71,17 @@ begin
   Spec := Builder.Select(UserEntity.Name.Name);
 
   Users := FContext.Entities<TUser>.List(Spec);
-  AssertTrue(Users.Count = 1, 'Should find 1 user', Format('Found %d', [Users.Count]));
-  AssertTrue(Users[0].Name = 'John Doe', 'Name should be loaded', Format('Found "%s"', [Users[0].Name]));
-  // Age should be default (0) because it wasn't selected
-  AssertTrue(Users[0].Age = 0, 'Age should be 0 (not loaded)', Format('Found %d', [Users[0].Age]));
-  // City should be default ('')
-  AssertTrue(Users[0].City = '', 'City should be empty (not loaded)', Format('Found "%s"', [Users[0].City]));
+  try
+    AssertTrue(Users.Count = 1, 'Should find 1 user', Format('Found %d', [Users.Count]));
+    AssertTrue(Users[0].Name = 'John Doe', 'Name should be loaded', Format('Found "%s"', [Users[0].Name]));
+    // Age should be default (0) because it wasn't selected
+    AssertTrue(Users[0].Age = 0, 'Age should be 0 (not loaded)', Format('Found %d', [Users[0].Age]));
+    // City should be default ('')
+    AssertTrue(Users[0].City = '', 'City should be empty (not loaded)', Format('Found "%s"', [Users[0].City]));
+  finally
+    for U in users do U.Free;
+    Users.Free;
+  end;
 end;
 
 procedure TAdvancedQueryTest.TestAggregations;
@@ -379,25 +384,29 @@ begin
   Spec := Builder.Include(UserEntity.Address.Name);
   Users := FContext.Entities<TUser>.List(Spec);
 
-  AssertTrue(Users.Count = 2, 'Should have 2 users', Format('Found %d', [Users.Count]));
+  try
+    AssertTrue(Users.Count = 2, 'Should have 2 users', Format('Found %d', [Users.Count]));
 
-  // Verify that Address navigation property is loaded
-  if Users.Count >= 1 then
-  begin
-    AssertTrue(Users[0].Address <> nil, 'User 1 Address should be loaded',
-      'User 1 Address is nil');
-    if Users[0].Address <> nil then
-      AssertTrue(Users[0].Address.Street = 'Main Street',
-        'User 1 should live on Main Street', Format('Found: %s', [Users[0].Address.Street]));
-  end;
+    // Verify that Address navigation property is loaded
+    if Users.Count >= 1 then
+    begin
+      AssertTrue(Users[0].Address <> nil, 'User 1 Address should be loaded',
+        'User 1 Address is nil');
+      if Users[0].Address <> nil then
+        AssertTrue(Users[0].Address.Street = 'Main Street',
+          'User 1 should live on Main Street', Format('Found: %s', [Users[0].Address.Street]));
+    end;
 
-  if Users.Count >= 2 then
-  begin
-    AssertTrue(Users[1].Address <> nil, 'User 2 Address should be loaded',
-      'User 2 Address is nil');
-    if Users[1].Address <> nil then
-      AssertTrue(Users[1].Address.Street = 'Second Avenue',
-        'User 2 should live on Second Avenue', Format('Found: %s', [Users[1].Address.Street]));
+    if Users.Count >= 2 then
+    begin
+      AssertTrue(Users[1].Address <> nil, 'User 2 Address should be loaded',
+        'User 2 Address is nil');
+      if Users[1].Address <> nil then
+        AssertTrue(Users[1].Address.Street = 'Second Avenue',
+          'User 2 should live on Second Avenue', Format('Found: %s', [Users[1].Address.Street]));
+    end;
+  finally
+    Users.Free;
   end;
 end;
 

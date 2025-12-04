@@ -206,7 +206,6 @@ end;
 
 destructor TLazyLoader.Destroy;
 begin
-  // WriteLn('DEBUG: TLazyLoader.Destroy (Collection=' + BoolToStr(FIsCollection, True) + ')');
   if FIsCollection and FLoaded and (not FValue.IsEmpty) then
   begin
     // If it's a collection, we own the TList/TObjectList created in LoadValue

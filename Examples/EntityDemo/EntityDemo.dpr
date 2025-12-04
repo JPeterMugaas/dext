@@ -11,7 +11,7 @@ uses
   EntityDemo.Tests.Base in 'EntityDemo.Tests.Base.pas',
   EntityDemo.Tests.Bulk in 'EntityDemo.Tests.Bulk.pas',
   EntityDemo.Tests.CompositeKeys in 'EntityDemo.Tests.CompositeKeys.pas',
-  EntityDemo.Tests.Concurrency in 'EntityDemo.Tests.Concurrency.pas',
+  EntityDemo.Tests.Concurrency   in 'EntityDemo.Tests.Concurrency.pas',
   EntityDemo.Tests.CRUD in 'EntityDemo.Tests.CRUD.pas',
   EntityDemo.Tests.ExplicitLoading in 'EntityDemo.Tests.ExplicitLoading.pas',
   EntityDemo.Tests.FluentAPI in 'EntityDemo.Tests.FluentAPI.pas',
@@ -78,7 +78,8 @@ begin
     
     // Option 1: SQLite (Default - File-based, good for development)
     TDbConfig.SetProvider(dpSQLite);
-    TDbConfig.ConfigureSQLite('test.db');
+    //TDbConfig.ConfigureSQLite('test.db');
+    TDbConfig.ConfigureSQLiteMemory;
 
     // Option 2: PostgreSQL (Server-based, production-ready)
     // TDbConfig.SetProvider(dpPostgreSQL);
@@ -87,10 +88,14 @@ begin
     // Option 3: Firebird (Brazilian market favorite)
     // TDbConfig.SetProvider(dpFirebird);
     // TDbConfig.ConfigureFirebird('C:\temp\dext_test.fdb', 'SYSDBA', 'masterkey');
-    
-    // Option 4: SQL Server (Enterprise)
+
+    // Option 4: SQL Server with Windows Authentication (Recommended)
     // TDbConfig.SetProvider(dpSQLServer);
-    // TDbConfig.ConfigureSQLServer('localhost', 'dext_test', 'sa', 'Password123!');
+    // TDbConfig.ConfigureSQLServerWindowsAuth('localhost', 'dext_test');
+    
+    // Option 5: SQL Server with SQL Authentication
+    //TDbConfig.SetProvider(dpSQLServer);
+    //TDbConfig.ConfigureSQLServer('localhost', 'dext_test', 'sa', 'SQL@d3veloper');
     
     WriteLn('📊 Database Provider: ' + TDbConfig.GetProviderName);
     WriteLn('');

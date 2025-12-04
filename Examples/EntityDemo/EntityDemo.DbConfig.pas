@@ -82,6 +82,11 @@ type
     ///   Configure SQLite connection
     /// </summary>
     class procedure ConfigureSQLite(const AFileName: string = 'test.db'); static;
+
+    /// <summary>
+    ///   Configure SQLite In-Memory connection
+    /// </summary>
+    class procedure ConfigureSQLiteMemory; static;
     
     /// <summary>
     ///   Configure PostgreSQL connection
@@ -104,13 +109,21 @@ type
     ); static;
     
     /// <summary>
-    ///   Configure SQL Server connection
+    ///   Configure SQL Server connection with SQL Authentication
     /// </summary>
     class procedure ConfigureSQLServer(
       const AHost: string = 'localhost';
       const ADatabase: string = 'dext_test';
       const AUsername: string = 'sa';
       const APassword: string = 'Password123!'
+    ); overload; static;
+    
+    /// <summary>
+    ///   Configure SQL Server connection with Windows Authentication
+    /// </summary>
+    class procedure ConfigureSQLServerWindowsAuth(
+      const AHost: string = 'localhost';
+      const ADatabase: string = 'dext_test'
     ); static;
     
     /// <summary>
@@ -206,13 +219,24 @@ begin
       FDConn.DriverName := 'MSSQL';
       FDConn.Params.Values['Server'] := FSQLServerHost;
       FDConn.Params.Values['Database'] := FSQLServerDatabase;
-      FDConn.Params.Values['User_Name'] := FSQLServerUsername;
-      FDConn.Params.Values['Password'] := FSQLServerPassword;
-      FDConn.Params.Values['MetaDefSchema'] := FSQLServerUsername; // Usually dbo or username
-      FDConn.Params.Values['MetaCurSchema'] := FSQLServerUsername;
-      // Optional: OS Authentication
+      
+      // Fix for ODBC Driver 18: Trust server certificate to avoid SSL errors
+      FDConn.Params.Values['ODBCAdvanced'] := 'TrustServerCertificate=yes';
+      
+      // Check if using Windows Authentication (empty username)
       if FSQLServerUsername = '' then
+      begin
         FDConn.Params.Values['OSAuthent'] := 'Yes';
+        FDConn.Params.Values['MetaDefSchema'] := 'dbo';
+        FDConn.Params.Values['MetaCurSchema'] := 'dbo';
+      end
+      else
+      begin
+        FDConn.Params.Values['User_Name'] := FSQLServerUsername;
+        FDConn.Params.Values['Password'] := FSQLServerPassword;
+        FDConn.Params.Values['MetaDefSchema'] := FSQLServerUsername;
+        FDConn.Params.Values['MetaCurSchema'] := FSQLServerUsername;
+      end;
     end;
     
     else
@@ -251,6 +275,12 @@ class procedure TDbConfig.ConfigureSQLite(const AFileName: string);
 begin
   FSQLiteFile := AFileName;
   WriteLn('✅ SQLite configured: ' + AFileName);
+end;
+
+class procedure TDbConfig.ConfigureSQLiteMemory;
+begin
+  FSQLiteFile := ':memory:';
+  WriteLn('✅ SQLite configured: In-Memory');
 end;
 
 class procedure TDbConfig.ConfigurePostgreSQL(
@@ -292,7 +322,19 @@ begin
   FSQLServerDatabase := ADatabase;
   FSQLServerUsername := AUsername;
   FSQLServerPassword := APassword;
-  WriteLn(Format('✅ SQL Server configured: %s/%s', [AHost, ADatabase]));
+  WriteLn(Format('✅ SQL Server configured: %s/%s (SQL Auth: %s)', [AHost, ADatabase, AUsername]));
+end;
+
+class procedure TDbConfig.ConfigureSQLServerWindowsAuth(
+  const AHost: string;
+  const ADatabase: string
+);
+begin
+  FSQLServerHost := AHost;
+  FSQLServerDatabase := ADatabase;
+  FSQLServerUsername := '';  // Empty username triggers Windows Authentication
+  FSQLServerPassword := '';
+  WriteLn(Format('✅ SQL Server configured: %s/%s (Windows Authentication)', [AHost, ADatabase]));
 end;
 
 class procedure TDbConfig.ResetDatabase;
