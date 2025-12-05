@@ -27,11 +27,19 @@ uses
   Dext.Entity.Drivers.FireDAC,
   Dext.Entity.Drivers.Interfaces,
   Dext.Entity.Dialects,
+  Dext.Entity.Mapping,
   EntityDemo.Entities,
   EntityDemo.DbConfig;
 
 type
   TBaseTestClass = class of TBaseTest;
+  
+  // Define a specific context for tests to register entities automatically
+  TEntityDemoContext = class(TDbContext)
+  protected
+    procedure OnModelCreating(Builder: TModelBuilder); override;
+  end;
+
   TBaseTest = class
   protected
     FConn: TFDConnection;
@@ -51,6 +59,18 @@ type
   end;
 
 implementation
+
+{ TEntityDemoContext }
+
+procedure TEntityDemoContext.OnModelCreating(Builder: TModelBuilder);
+begin
+  inherited;
+  // Register Entities
+  Builder.Entity<TUser>;
+  Builder.Entity<TAddress>;
+  Builder.Entity<TProduct>;
+  Builder.Entity<TOrderItem>;
+end;
 
 { TBaseTest }
 

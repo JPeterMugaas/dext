@@ -154,10 +154,10 @@ Melhorar como os dados relacionados são carregados e gerenciar ciclo de vida da
 
 ### 🚧 Fase 6: Migrations (Em Progresso)
 Sistema completo de evolução de esquema Code-First.
-- [ ] **Schema Builder**: API fluente para definição de DDL (`CreateTable`, `AddColumn`).
-- [ ] **Model Diff**: Algoritmo para comparar Modelo Atual vs Snapshot Anterior.
-- [ ] **Migration Generator**: Gerar classes Pascal com os passos `Up`/`Down`.
-- [ ] **Migration Runner**: Aplicar migrações pendentes no banco e gerenciar tabela de histórico.
+- [x] **Schema Builder**: API fluente para definição de DDL (`CreateTable`, `AddColumn`).
+- [x] **Model Diff**: Algoritmo para comparar Modelo Atual vs Snapshot Anterior.
+- [x] **Migration Generator**: Gerar classes Pascal com os passos `Up`/`Down`.
+- [x] **Migration Runner**: Aplicar migrações pendentes no banco e gerenciar tabela de histórico.
 - [ ] **CLI Integration**: Comandos para criar e rodar migrações.
 
 ### 🚀 Fase 5: Performance & Observability (Novo)

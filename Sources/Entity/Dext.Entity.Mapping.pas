@@ -157,6 +157,7 @@ type
     
     function GetMap(AType: PTypeInfo): TEntityMap;
     function HasMap(AType: PTypeInfo): Boolean;
+    function GetMaps: TEnumerable<TEntityMap>;
   end;
 
 implementation
@@ -411,6 +412,11 @@ end;
 function TModelBuilder.HasMap(AType: PTypeInfo): Boolean;
 begin
   Result := FMaps.ContainsKey(AType);
+end;
+
+function TModelBuilder.GetMaps: TEnumerable<TEntityMap>;
+begin
+  Result := FMaps.Values;
 end;
 
 end.

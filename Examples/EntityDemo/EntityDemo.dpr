@@ -21,8 +21,7 @@ uses
   EntityDemo.Tests.Scaffolding in 'EntityDemo.Tests.Scaffolding.pas',
   EntityDemo.Tests.FluentMappingSyntax in 'EntityDemo.Tests.FluentMappingSyntax.pas',
   EntityDemo.Entities in 'EntityDemo.Entities.pas',
-  GeneratedEntitiesMappingWithAttributes in 'GeneratedEntitiesMappingWithAttributes.pas',
-  GeneratedEntitiesFluentMapping in 'GeneratedEntitiesFluentMapping.pas';
+  EntityDemo.Tests.Migrations in 'EntityDemo.Tests.Migrations.pas';
 
 procedure RunTest(const TestClass: TBaseTestClass);
 var
@@ -39,7 +38,6 @@ end;
 
 procedure RunAllTests;
 begin
-{
   // 1. CRUD Tests
   RunTest(TCRUDTest);
   // 2. Relationships Tests
@@ -60,8 +58,10 @@ begin
   RunTest(TBulkTest);
   // 10. Concurrency Tests
   RunTest(TConcurrencyTest);
-}  // 11. Scaffolding Tests
+  // 11. Scaffolding Tests
   RunTest(TScaffoldingTest);
+  // 12. Migrations Builder Tests
+  RunTest(TMigrationsTest);
 
   WriteLn('');
   WriteLn('✨ All tests completed.');

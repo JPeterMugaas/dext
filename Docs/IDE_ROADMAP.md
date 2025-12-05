@@ -41,6 +41,7 @@ Um "Object Inspector" para código-fonte.
 ### 3. Integrated Console
 - [ ] **Dext Terminal**: Terminal integrado à IDE com contexto do projeto carregado.
 - [ ] **CLI Integration**: Atalhos para comandos do Dext CLI (`dext migrate`, `dext run`).
+- [ ] Suport to font ligatures, font icons, syntax highlighting and auto-completion, search, copy, paste, export as... etc.
 
 ### 4. Markdown & Diagrams
 - [ ] **Markdown Viewer**: Visualizador de MD com suporte a **Mermaid.js** para renderizar diagramas de arquitetura direto na IDE.
