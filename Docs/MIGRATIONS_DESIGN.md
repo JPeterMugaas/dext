@@ -1,12 +1,15 @@
-# Dext Entity ORM - Migrations Design Document
-
 ## Overview
 Migrations allow the database schema to evolve over time alongside the application's data model. Instead of manually running SQL scripts, the ORM generates and manages these changes.
+
+We support two architectural approaches for migrations:
+1.  **Embedded (Pascal)**: Migrations are compiled into the application. Simple for small apps.
+2.  **External (JSON)**: Migrations are stored as JSON files and executed by an external runner (`dext console`). Ideal for CI/CD and enterprise environments where the application should not have DDL permissions.
 
 ## Core Components
 
 ### 1. Migration Metadata (`IMigration`)
 An interface representing a single migration step.
+
 ```pascal
 type
   IMigration = interface
@@ -28,9 +31,7 @@ Builder.CreateTable('Users')
 
 ### 3. Model Snapshot (`TModelSnapshot`)
 To detect changes, we need to compare the *current* code model against the *last applied* model.
-- **Approach A (Code-based)**: Generate a snapshot file (JSON/Pascal) after every migration.
-- **Approach B (Database-based)**: Compare current model directly with database schema (Diff). *Harder to get right across dialects.*
-- **Selected Approach**: **Snapshot**. When adding a migration, we compare the `DbContext` model with the `LastKnownSnapshot`. The difference generates the `Up`/`Down` methods.
+- **Approach**: **Snapshot**. When adding a migration, we compare the `DbContext` model with the `LastKnownSnapshot`. The difference generates the `Up`/`Down` methods (or JSON operations).
 
 ### 4. Migration History Table
 A table in the database (e.g., `__DextMigrations`) tracking applied migrations.
@@ -38,55 +39,135 @@ A table in the database (e.g., `__DextMigrations`) tracking applied migrations.
 - `AppliedOn` (DateTime)
 - `ProductVersion` (String)
 
+---
+
+## Migration Formats
+
+We support two formats for storing migrations. This is configurable via `Dext.config.json` or `TDbContext` options.
+
+### Format A: Pascal Units (Embedded)
+The traditional Delphi approach. Each migration is a unit compiled into the executable.
+*   **Pros**: Strong typing, full language power, no external dependencies.
+*   **Cons**: Requires recompilation, application needs DDL permissions.
+
+```pascal
+unit Migrations.M20231027100000_InitialCreate;
+
+procedure Up(Builder: TSchemaBuilder);
+begin
+  Builder.CreateTable('Users')...
+end;
+```
+
+### Format B: JSON Files (External)
+Migrations are stored as language-agnostic JSON files.
+*   **Pros**: No recompilation, safe for CI/CD, readable by other tools.
+*   **Cons**: Less flexible than code (no custom logic).
+
+**Example (`20251205060000_CreateUsers.json`):**
+```json
+{
+  "id": "20251205060000",
+  "description": "Create Users Table",
+  "author": "Cezar",
+  "operations": [
+    {
+      "op": "create_table",
+      "name": "Users",
+      "columns": [
+        { "name": "Id", "type": "GUID", "pk": true },
+        { "name": "Email", "type": "VARCHAR", "length": 255, "nullable": false },
+        { "name": "CreatedAt", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    {
+      "op": "create_index",
+      "table": "Users",
+      "name": "IX_Users_Email",
+      "columns": ["Email"],
+      "unique": true
+    }
+  ]
+}
+```
+
+**Supported Operations (`op`):**
+*   `create_table`: Creates a new table. Requires `name` and `columns`.
+*   `drop_table`: Drops a table. Requires `name`.
+*   `add_column`: Adds a column to an existing table. Requires `table` and `column` definition.
+*   `drop_column`: Drops a column. Requires `table` and `name`.
+*   `alter_column`: Modifies a column. Requires `table` and `column` definition.
+*   `add_fk`: Adds a foreign key. Requires `table`, `name`, `columns`, `ref_table`, `ref_columns`.
+*   `drop_fk`: Drops a foreign key. Requires `table` and `name`.
+*   `create_index`: Creates an index. Requires `table`, `name`, `columns`. Optional `unique`.
+*   `drop_index`: Drops an index. Requires `table` and `name`.
+*   `sql`: Executes raw SQL. Requires `sql`.
+
+---
+
+## Runtime Safety (The "Handshake")
+
+To ensure the application runs against a compatible database schema without needing to run migrations itself:
+
+1.  **Build Time**: The compiler/build tool injects the `ExpectedSchemaHash` or `LastMigrationId` into the executable resource.
+2.  **Startup**: The application checks the `__DextMigrations` table.
+    - If `LastAppliedMigration < ExpectedMigration`: Error (Database outdated).
+    - If `LastAppliedMigration > ExpectedMigration`: Warning/Error (Application outdated).
+    - If `LastAppliedMigration == ExpectedMigration`: Success.
+
+```pascal
+procedure TMyAppContext.OnStart;
+begin
+  // Validates schema compatibility without altering the database
+  if not Migrator.ValidateSchemaCompatibility('20251205060000_LastKnownMigration') then
+    raise Exception.Create('Database schema is incompatible with this application version.');
+end;
+```
+
+---
+
 ## Workflow (CLI / Tooling)
 
-1.  **`dext migrations add <Name>`**
-    - Compiles/Loads the project.
-    - Builds the current `TModel` from `DbContext`.
-    - Loads the `LastSnapshot` (from file).
-    - Calculates Diff (Model vs Snapshot).
-    - Generates a new Pascal unit `Migrations\YYYYMMDDHHMMSS_Name.pas`.
-    - Updates `LastSnapshot` file.
+### 1. `dext migrations add <Name>`
+- Compiles/Loads the project.
+- Builds current `TModel`.
+- Loads `LastSnapshot`.
+- Calculates Diff.
+- **Config Check**:
+    - If `Format=Pascal`: Generates `Migrations\YYYYMMDDHHMMSS_Name.pas`.
+    - If `Format=JSON`: Generates `Migrations\YYYYMMDDHHMMSS_Name.json`.
+- Updates `LastSnapshot`.
 
-2.  **`dext database update`**
-    - Compiles/Loads the project.
-    - Checks `__DextMigrations` in the DB.
-    - Identifies pending migrations from the code.
-    - Executes `Up()` for each pending migration in a transaction.
-    - Inserts record into `__DextMigrations`.
+### 2. `dext migrate:up` (External Runner)
+- Reads migration source (Folder of JSONs or DLL/BPL).
+- Connects to DB (Admin credentials).
+- Applies pending migrations.
+- Updates `__DextMigrations`.
 
-## Implementation Steps
-
-### Phase 1: Schema Builder & Operations (The "What")
-- Define `TOperation` classes: `TCreateTableOperation`, `TAddColumnOperation`, `TDropTableOperation`, etc.
-- Implement `TSchemaBuilder` to construct these operations.
-- Implement `ISQLGenerator.Generate(TOperation)` in Dialects to produce SQL.
-
-### Phase 2: Model Diffing (The "Why")
-- Implement `TModelDiffer`.
-- Input: `SourceModel`, `TargetModel`.
-- Output: `List<TOperation>`.
-- Logic:
-  - Table exists in Target but not Source -> `CreateTable`.
-  - Column exists in Target but not Source -> `AddColumn`.
-  - Column changed -> `AlterColumn` (Complex! Type mapping changes).
-
-### Phase 3: Migration Runner (The "How")
-- `TMigrator` class.
-- Methods: `Migrate(TargetMigration: string)`, `GetPendingMigrations()`.
-- Interaction with `__DextMigrations` table.
-
-### Phase 4: Tooling Integration
-- Since Delphi is compiled, "loading the project" to get the model is tricky for an external CLI.
-- **Solution**: The user's project acts as the tool.
-  - `MyApp.exe --migrate` or a separate console app `Migrator.exe` that uses the `DbContext`.
-
-## Proposed Folder Structure
+**Usage:**
+```bash
+# Run migrations from a specific directory containing JSON files
+dext migrate:up --source "C:\Path\To\Migrations"
 ```
-ProjectRoot/
-  src/
-    Migrations/
-      202310010000_Initial.pas
-      202310050000_AddEmail.pas
-      ModelSnapshot.pas (or .json)
-```
+
+### 3. Application Startup
+- Connects to DB (App credentials - DML only).
+- Performs "Handshake" using `Migrator.ValidateSchemaCompatibility`.
+- Starts if compatible.
+
+---
+
+## Implementation Status
+
+### Phase 1: JSON Support
+- [x] Define JSON Schema for all `TMigrationOperation` types.
+- [x] Implement `TMigrationJsonSerializer` and `TMigrationJsonDeserializer`.
+- [x] Update `TMigrator` to accept a `IMigrationSource` (Abstract provider for Pascal/JSON).
+
+### Phase 2: External Runner
+- [x] Create `dext console` command `migrate:run` (implemented as `migrate:up`).
+- [x] Implement logic to read JSON files and execute against a connection string (`TJsonMigrationLoader`).
+
+### Phase 3: Safety & Tooling
+- [x] Implement `ValidateSchemaCompatibility`.
+- [ ] Add configuration options to toggle between formats.

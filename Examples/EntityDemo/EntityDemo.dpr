@@ -1,4 +1,5 @@
-﻿program EntityDemo;
+﻿
+program EntityDemo;
 
 {$APPTYPE CONSOLE}
 

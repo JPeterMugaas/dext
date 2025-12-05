@@ -10,6 +10,7 @@ uses
   Dext.Entity.Core,
   Dext.Entity.Migrations,
   Dext.Entity.Migrations.Runner,
+  Dext.Entity.Migrations.Json,
   Dext.Entity.Drivers.Interfaces;
 
 type
@@ -156,14 +157,32 @@ end;
 
 function TMigrateUpCommand.GetDescription: string;
 begin
-  Result := 'Applies all pending migrations to the database.';
+  Result := 'Applies all pending migrations to the database. Usage: migrate:up [--source <path>]';
 end;
 
 procedure TMigrateUpCommand.Execute(const Args: TArray<string>);
 var
   Context: IDbContext;
   Migrator: TMigrator;
+  i: Integer;
+  SourcePath: string;
 begin
+  // Parse arguments
+  for i := 0 to High(Args) do
+  begin
+    if (Args[i] = '--source') or (Args[i] = '-s') then
+    begin
+      if i + 1 <= High(Args) then
+        SourcePath := Args[i + 1];
+    end;
+  end;
+
+  if SourcePath <> '' then
+  begin
+    WriteLn('   📂 Loading migrations from: ' + SourcePath);
+    TJsonMigrationLoader.LoadFromDirectory(SourcePath);
+  end;
+
   WriteLn('Starting migration update...');
   Context := FContextFactory();
   try
@@ -175,8 +194,14 @@ begin
       Migrator.Free;
     end;
   finally
-    // Context is interface managed, but if factory returns TObject, handle accordingly.
-    // Assuming factory returns interface, ref counting handles it.
+    // Context is interface managed, but TDbContext disables ref counting.
+    // We must manually free it if it's an object.
+    if Context is TDbContext then
+    begin
+      var CtxObj := Context as TDbContext;
+      Context := nil; // Clear interface ref to prevent _IntfClear on dead object
+      CtxObj.Free;
+    end;
   end;
 end;
 
@@ -260,6 +285,12 @@ begin
     end;
   finally
     // Context released
+    if Context is TDbContext then
+    begin
+      var CtxObj := Context as TDbContext;
+      Context := nil; // Clear interface ref to prevent _IntfClear on dead object
+      CtxObj.Free;
+    end;
   end;
 end;
 

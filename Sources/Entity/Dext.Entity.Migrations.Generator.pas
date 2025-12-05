@@ -8,7 +8,10 @@ uses
   System.Generics.Collections,
   System.StrUtils,
   System.TypInfo,
-  Dext.Entity.Migrations.Operations;
+  Dext.Entity.Migrations.Operations,
+  Dext.Entity.Migrations.Serializers.Json,
+  Dext.Json,
+  Dext.Json.Types;
 
 type
   TMigrationGenerator = class
@@ -24,11 +27,40 @@ type
     class function QuoteString(const S: string): string;
   public
     class function GenerateUnit(const AUnitName, AClassName: string; Ops: TObjectList<TMigrationOperation>): string;
+    class function GenerateJson(const AId, ADescription, AAuthor: string; Ops: TObjectList<TMigrationOperation>): string;
   end;
 
 implementation
 
 { TMigrationGenerator }
+
+class function TMigrationGenerator.GenerateJson(const AId, ADescription, AAuthor: string;
+  Ops: TObjectList<TMigrationOperation>): string;
+var
+  Provider: IDextJsonProvider;
+  Obj: IDextJsonObject;
+  OpsJson: string;
+  OpsNode: IDextJsonNode;
+begin
+  Provider := TDextJson.Provider;
+  Obj := Provider.CreateObject;
+  
+  Obj.SetString('id', AId);
+  Obj.SetString('description', ADescription);
+  Obj.SetString('author', AAuthor);
+  Obj.SetString('created_at', FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now));
+  
+  // Use the serializer to get the operations array
+  // Since Serialize returns a string, we parse it back to inject it into our main object
+  // This is a bit round-trip but keeps the serializer clean.
+  OpsJson := TMigrationJsonSerializer.Serialize(Ops);
+  OpsNode := Provider.Parse(OpsJson);
+  
+  if (OpsNode <> nil) and (OpsNode.GetNodeType = jntArray) then
+    Obj.SetArray('operations', OpsNode as IDextJsonArray);
+    
+  Result := Obj.ToJson(True);
+end;
 
 class function TMigrationGenerator.GenerateUnit(const AUnitName, AClassName: string;
   Ops: TObjectList<TMigrationOperation>): string;

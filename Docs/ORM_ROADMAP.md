@@ -158,8 +158,10 @@ Sistema completo de evolução de esquema Code-First.
 - [x] **Model Diff**: Algoritmo para comparar Modelo Atual vs Snapshot Anterior.
 - [x] **Migration Generator**: Gerar classes Pascal com os passos `Up`/`Down`.
 - [x] **Migration Runner**: Aplicar migrações pendentes no banco e gerenciar tabela de histórico.
-- [ ] **CLI Integration**: Comandos para criar e rodar migrações.
-  - Implementar `Dext.Hosting.CLI` para processar comandos (`migrate add`, `migrate up`) no próprio executável.
+- [x] **JSON Migration Format**: Suporte a migrações em JSON (agnóstico a linguagem).
+- [x] **External Runner**: `dext console` para rodar migrações em CI/CD (sem depender do executável da aplicação).
+- [x] **Runtime Safety**: Validação de versão de esquema no startup ("Handshake").
+- [x] **CLI Integration**: Comandos para criar e rodar migrações (`migrate add`, `migrate up`).
 
 ### 🚀 Fase 5: Performance & Observability (Novo)
 Foco em otimização extrema, gerenciamento de memória e observabilidade.

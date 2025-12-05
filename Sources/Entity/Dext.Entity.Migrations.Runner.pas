@@ -23,6 +23,13 @@ type
   public
     constructor Create(AContext: IDbContext);
     procedure Migrate;
+    
+    /// <summary>
+    ///   Checks if the database schema is compatible with the expected version.
+    ///   Returns True if the last applied migration is equal to or greater than the ExpectedVersion.
+    ///   If ExpectedVersion is empty, returns True (no check).
+    /// </summary>
+    function ValidateSchemaCompatibility(const ExpectedVersion: string): Boolean;
   end;
 
 implementation
@@ -168,6 +175,29 @@ begin
         // WriteLn('   ⏭️ Skipping applied migration: ' + Migration.GetId);
       end;
     end;
+  finally
+    Applied.Free;
+  end;
+end;
+
+function TMigrator.ValidateSchemaCompatibility(const ExpectedVersion: string): Boolean;
+var
+  Applied: TList<string>;
+  LastApplied: string;
+begin
+  if ExpectedVersion.IsEmpty then
+    Exit(True);
+    
+  Applied := GetAppliedMigrations;
+  try
+    if Applied.Count = 0 then
+      Exit(False); // No migrations applied, definitely not compatible if we expect something
+      
+    Applied.Sort; // Sort lexicographically (timestamps work well)
+    LastApplied := Applied.Last;
+    
+    // Check if LastApplied >= ExpectedVersion
+    Result := CompareText(LastApplied, ExpectedVersion) >= 0;
   finally
     Applied.Free;
   end;

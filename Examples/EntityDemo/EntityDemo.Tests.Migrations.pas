@@ -383,12 +383,12 @@ begin
     // For now, let's just instantiate the commands manually to verify they compile and run logic.
     
     Log('   Testing migrate:list command logic...');
-    var ListCmd := TMigrateListCommand.Create(ContextFactory);
+    var ListCmd: IConsoleCommand := TMigrateListCommand.Create(ContextFactory);
     ListCmd.Execute([]);
     Log('   ✅ migrate:list executed.');
     
     Log('   Testing migrate:up command logic...');
-    var UpCmd := TMigrateUpCommand.Create(ContextFactory);
+    var UpCmd: IConsoleCommand := TMigrateUpCommand.Create(ContextFactory);
     UpCmd.Execute([]);
     Log('   ✅ migrate:up executed.');
     
