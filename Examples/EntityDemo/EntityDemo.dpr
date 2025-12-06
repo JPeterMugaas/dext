@@ -24,7 +24,8 @@ uses
   EntityDemo.Entities in 'EntityDemo.Entities.pas',
   EntityDemo.Tests.Migrations in 'EntityDemo.Tests.Migrations.pas',
   EntityDemo.Tests.Collections in 'EntityDemo.Tests.Collections.pas',
-  EntityDemo.Tests.NoTracking in 'EntityDemo.Tests.NoTracking.pas';
+  EntityDemo.Tests.NoTracking in 'EntityDemo.Tests.NoTracking.pas',
+  EntityDemo.Tests.MixedCompositeKeys in 'EntityDemo.Tests.MixedCompositeKeys.pas';
 
 procedure ConfigureDatabase(Provider: TDatabaseProvider);
 begin
@@ -105,6 +106,8 @@ begin
   RunTest(TCollectionsTest);
   // 14. No Tracking Tests
   RunTest(TNoTrackingTest);
+  // 15. Mixed Composite Keys
+  RunTest(TMixedCompositeKeyTest);
 
   WriteLn('');
   WriteLn('✨ All tests completed.');

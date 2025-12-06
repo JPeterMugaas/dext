@@ -69,12 +69,14 @@ type
     procedure DetachAll;
     procedure Detach(const AEntity: TObject); overload;
 
+
     procedure Add(const AEntity: T); overload;
     procedure Update(const AEntity: T); overload;
     procedure Remove(const AEntity: T); overload;
     procedure Detach(const AEntity: T); overload;
     function Find(const AId: Variant): T; overload;
     function Find(const AId: array of Integer): T; overload;
+    function Find(const AId: array of Variant): T; overload;
 
     procedure AddRange(const AEntities: TArray<T>); overload;
     procedure AddRange(const AEntities: TEnumerable<T>); overload;
@@ -898,19 +900,19 @@ end;
 function TDbSet<T>.Find(const AId: Variant): T;
 var
   L: IList<T>;
-  IntArray: TArray<Integer>;
+  VariantArray: TArray<Variant>;
   i: Integer;
 begin
   // Check if AId is a VarArray (composite key)
   if VarIsArray(AId) then
   begin
-    // Convert VarArray to array of Integer
-    SetLength(IntArray, VarArrayHighBound(AId, 1) - VarArrayLowBound(AId, 1) + 1);
-    for i := 0 to High(IntArray) do
-      IntArray[i] := AId[VarArrayLowBound(AId, 1) + i];
+    // Convert VarArray to array of Variant
+    SetLength(VariantArray, VarArrayHighBound(AId, 1) - VarArrayLowBound(AId, 1) + 1);
+    for i := 0 to High(VariantArray) do
+      VariantArray[i] := AId[VarArrayLowBound(AId, 1) + i];
     
     // Call the array overload
-    Result := Find(IntArray);
+    Result := Find(VariantArray);
     Exit;
   end;
 
@@ -928,7 +930,7 @@ begin
     Result := nil;
 end;
 
-function TDbSet<T>.Find(const AId: array of Integer): T;
+function TDbSet<T>.Find(const AId: array of Variant): T;
 var
   L: IList<T>;
   Expr: IExpression;
@@ -937,7 +939,7 @@ var
 begin
   if Length(AId) = 1 then
   begin
-    Result := Find(Variant(AId[0]));
+    Result := Find(AId[0]);
     Exit;
   end;
 
@@ -982,6 +984,17 @@ begin
     Result := L[0]
   else
     Result := nil;
+end;
+
+function TDbSet<T>.Find(const AId: array of Integer): T;
+var
+  VarArray: TArray<Variant>;
+  i: Integer;
+begin
+  SetLength(VarArray, Length(AId));
+  for i := 0 to High(AId) do
+    VarArray[i] := AId[i];
+  Result := Find(VarArray);
 end;
 
 function TDbSet<T>.Query(const ASpec: ISpecification<T>): TFluentQuery<T>;

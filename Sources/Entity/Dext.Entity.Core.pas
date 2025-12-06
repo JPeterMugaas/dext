@@ -68,20 +68,16 @@ type
   ///   Represents a collection of entities mapped to a database table.
   /// </summary>
   IDbSet<T: class> = interface(IDbSet)
-    ['{30000000-0000-0000-0000-000000000001}']
-    
     // CRUD
     procedure Add(const AEntity: T);
     procedure Update(const AEntity: T);
     procedure Remove(const AEntity: T);
     procedure Detach(const AEntity: T); overload;
-    function Find(const AId: Variant): T; overload;
-    function Find(const AId: array of Integer): T; overload;
 
     // Bulk Operations
     procedure AddRange(const AEntities: TArray<T>); overload;
     procedure AddRange(const AEntities: TEnumerable<T>); overload;
-    
+
     procedure UpdateRange(const AEntities: TArray<T>); overload;
     procedure UpdateRange(const AEntities: TEnumerable<T>); overload;
     
@@ -89,6 +85,10 @@ type
     procedure RemoveRange(const AEntities: TEnumerable<T>); overload;
 
     // Queries via Specifications
+    function Find(const AId: Variant): T; overload;
+    function Find(const AId: array of Integer): T; overload;
+    function Find(const AId: array of Variant): T; overload;
+
     function List: IList<T>; overload;
     function List(const ASpec: ISpecification<T>): IList<T>;  overload;
 

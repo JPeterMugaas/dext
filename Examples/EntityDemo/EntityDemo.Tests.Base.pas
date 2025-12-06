@@ -169,6 +169,7 @@ begin
   FContext.Entities<TUser>;
   FContext.Entities<TOrderItem>;
   FContext.Entities<TProduct>;
+  FContext.Entities<TMixedKeyEntity>;
   
   WriteLn('🏗️  Creating schema...');
   FContext.EnsureCreated;

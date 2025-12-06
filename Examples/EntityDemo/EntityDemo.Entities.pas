@@ -102,6 +102,22 @@ type
     property Version: Integer read FVersion write FVersion;
   end;
 
+  [Table('mixed_keys')]
+  TMixedKeyEntity = class
+  private
+    FKey1: Integer;
+    FKey2: string;
+    FValue: string;
+  public
+    [PK, Column('key_1')]
+    property Key1: Integer read FKey1 write FKey1;
+
+    [PK, Column('key_2')]
+    property Key2: string read FKey2 write FKey2;
+
+    property Value: string read FValue write FValue;
+  end;
+
   // 🧬 Metadata Implementation (TypeOf)
   UserEntity = class
   public

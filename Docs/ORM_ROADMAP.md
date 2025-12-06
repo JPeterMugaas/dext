@@ -29,6 +29,10 @@ O núcleo do ORM está funcional, suportando operações CRUD, mapeamento básic
 #### 2. CRUD & Operações
 - [x] **Basic CRUD**: `Add`, `Update`, `Remove`, `Find` (por ID).
 - [x] **Composite Keys**: Suporte a chaves primárias compostas.
+- [x] **Mixed Composite Keys**: Suporte a chaves compostas com tipos diferentes (Integer + String, etc).
+  - *API*: `Find([10, 'ABC'])` usando `array of Variant`
+  - *Exemplo*: Entidade com `Key1: Integer` e `Key2: String`
+  - *Status*: ✅ **Implementado e Validado**
 - [x] **Bulk Operations**: `AddRange`, `UpdateRange`, `RemoveRange` (Iterativo).
 - [x] **Cascade Insert**: Inserção automática de entidades filhas novas.
 - [x] **Optimistic Concurrency**: Controle de concorrência via atributo `[Version]` (Implementado e Validado).
