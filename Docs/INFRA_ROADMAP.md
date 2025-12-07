@@ -40,6 +40,25 @@ Base para o suporte a OpenTelemetry nos frameworks superiores.
 - [ ] **Metrics API**: Contadores, Histogramas e Gauges de alta performance.
 - [ ] **Logging Abstraction**: Zero-allocation logging interface.
 
-### 2. Async/Await Foundation
-- [ ] **Fluent Tasks API**: Primitivas para orquestração de tarefas assíncronas.
-- [ ] **Scheduler**: Scheduler customizado para otimizar context switches em operações de I/O.
+### 2. Advanced Async & Concurrency
+Evolução da `Fluent Tasks API` para suportar cenários complexos de orquestração e alta performance.
+
+- [x] **Fluent Tasks Core**: Implementação base (`TAsyncTask`, `ThenBy`, `WithCancellation`).
+- [ ] **Unsynchronized Callbacks**: Opção para executar callbacks em thread de background (evitar gargalo na Main Thread).
+  - *API*: `.OnCompleteAsync(proc)`, `.Configure(RunOnMainThread: Boolean)`
+- [ ] **Composition Patterns (Fork/Join)**:
+  - `WhenAll(Tasks)`: Aguardar múltiplas tasks finalizarem (Scatter-Gather).
+  - `WhenAny(Tasks)`: Retornar assim que a primeira task finalizar (Redundancy/Race).
+- [ ] **Parallel Data Processing**:
+  - Integração com loops paralelos fluentes.
+  - *Exemplo*: `TAsyncTask.For(0, 1000).Process(procedure(I) ...).Start`
+- [ ] **Resilience Patterns**:
+  - **Retry**: `.Retry(Count, Delay)` para falhas transientes.
+  - **Circuit Breaker**: Proteger recursos externos de sobrecarga.
+  - **Timeout**: `Timeout(500ms)` forçando cancelamento se exceder o tempo.
+- [ ] **Progress Reporting**:
+  - Suporte a `IProgress<T>` para notificar progresso granular sem acoplar com UI.
+- [ ] **Telemetry Hooks**:
+  - Log automático de tempo de execução, exceções e cancelamentos via `Core.Telemetry`.
+
+---

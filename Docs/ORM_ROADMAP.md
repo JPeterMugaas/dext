@@ -247,10 +247,11 @@ Foco em otimização extrema, gerenciamento de memória e observabilidade.
 ---
 
 ### **Sprint 4: Async & AOT** (6 semanas)
-1. **Async/Await Support** (4 semanas)
+1. **Infrastructure**: Connection Pooling & Thread-Safe Drivers.
+2. **Async/Await Support** (4 semanas)
    - Integração com Fluent Tasks API
    - `FindAsync`, `SaveChangesAsync`, etc
-2. **Pre-compiled Queries (POC)** (2 semanas)
+3. **Pre-compiled Queries (POC)** (2 semanas)
    - Build-time code generation
    - Redução de startup time
 
@@ -576,7 +577,7 @@ Funcionalidades essenciais para sistemas corporativos complexos.
 #### 5. Async Support (Fluent Tasks API)
 Integração transparente de operações assíncronas.
 - [x] **Fluent Tasks API**: API fluente para orquestração de tasks.
-- [ ] **Async ORM Methods**: `FindAsync`, `ToListByIdsAsync`, `SaveAsync` no DbSet/DbContext.
+- [ ] **Async ORM Methods**: `FindAsync`, `ToListByIdsAsync` (Depende de Connection Pooling).
 - [ ] **Web & ORM Integration**: Suporte nativo em Controllers e DbContext.
 
 ### 🛠️ Fase 6: Tooling & Ecosystem

@@ -33,6 +33,7 @@ uses
   Dext.OpenAPI.Attributes,
   Dext.Options,
   Dext.Options.Extensions,
+  Dext.Threading.Async,
   Dext.Validation;
 
 type
@@ -121,6 +122,10 @@ type
   THealthCheckResult = Dext.HealthChecks.THealthCheckResult;
   TBackgroundService = Dext.Hosting.BackgroundService.TBackgroundService;
   ICancellationToken = Dext.Core.CancellationToken.ICancellationToken;
+  
+  // Async
+  TAsyncTask = Dext.Threading.Async.TAsyncTask;
+  IAsyncTask = Dext.Threading.Async.IAsyncTask;
 
   // Memory Management
   IDeferred = Dext.Core.Memory.IDeferred;

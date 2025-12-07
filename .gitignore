@@ -19,4 +19,5 @@ FastMM_FullDebugMode.dll
 *.db
 GeneratedEntitiesFluentMapping.pas
 GeneratedEntitiesMappingWithAttributes.pas
+3thParty
 FluentTasks
