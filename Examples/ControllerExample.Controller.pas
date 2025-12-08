@@ -14,6 +14,7 @@ uses
   System.Classes,
   System.SysUtils,
   Dext, // ✅ All-in-one framework unit
+  Dext.Http.Results,
   Dext.Options, // Needed for IOptions<T>
   ControllerExample.Services; // For TMySettings
 
@@ -66,8 +67,11 @@ type
     // Constructor Injection!
     constructor Create(AService: IGreetingService; Settings: IOptions<TMySettings>);
 
-    [DextGet('/{name}')]
     procedure GetGreeting(Ctx: IHttpContext; [FromRoute] const Name: string); virtual;
+    
+    [DextGet('/negotiated')]
+    [AllowAnonymous]
+    procedure GetNegotiated(Ctx: IHttpContext); virtual;
 
     [DextPost('/')]
     procedure CreateGreeting(Ctx: IHttpContext; const Request: TGreetingRequest); virtual;
@@ -171,6 +175,18 @@ begin
   Ctx.Response.Json(
     Format('{"message": "%s" - %s}',
     [Message, FormatDateTime('hh:nn:ss.zzz', Now)]));
+end;
+
+procedure TGreetingController.GetNegotiated(Ctx: IHttpContext);
+var
+  Data: TGreetingRequest;
+begin
+  Data.Name := 'Dext User';
+  Data.Title := 'Developer';
+  
+  // This will use the registered IOutputFormatterSelector to choose between JSON (default)
+  // or others if Accept header dictates and more formatters are registered.
+  Results.Ok<TGreetingRequest>(Data).Execute(Ctx);
 end;
 
 procedure TGreetingController.CreateGreeting(Ctx: IHttpContext; const Request: TGreetingRequest);

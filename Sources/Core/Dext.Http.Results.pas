@@ -4,13 +4,31 @@ interface
 
 uses
   System.SysUtils,
+  System.Rtti,
+  Dext.DI.Interfaces,
   Dext.Http.Interfaces,
+  Dext.Http.Formatters.Interfaces,
+  Dext.Http.Formatters.Json, // Default formatter
   Dext.Json;
 
 type
   TResult = class(TInterfacedObject, IResult)
   protected
     procedure Execute(AContext: IHttpContext); virtual; abstract;
+  end;
+
+  TOutputFormatterContext = class(TInterfacedObject, IOutputFormatterContext)
+  private
+    FContext: IHttpContext;
+    FObjectType: TRttiType;
+    FObject: TValue;
+    FCtx: TRttiContext;
+  public
+    constructor Create(const AContext: IHttpContext; ATypeInfo: Pointer; const AObject: TValue);
+    destructor Destroy; override;
+    function GetHttpContext: IHttpContext;
+    function GetObjectType: TRttiType;
+    function GetObject: TValue;
   end;
 
   TJsonResult = class(TResult)
@@ -40,6 +58,15 @@ type
     procedure Execute(AContext: IHttpContext); override;
   end;
 
+  TObjectResult<T> = class(TResult)
+  private
+    FValue: T;
+    FStatusCode: Integer;
+  public
+    constructor Create(const AValue: T; AStatusCode: Integer = 200);
+    procedure Execute(AContext: IHttpContext); override;
+  end;
+
   Results = class
   public
     class function Ok: IResult; overload;
@@ -64,6 +91,38 @@ type
   end;
 
 implementation
+
+{ TOutputFormatterContext }
+
+constructor TOutputFormatterContext.Create(const AContext: IHttpContext; ATypeInfo: Pointer; const AObject: TValue);
+begin
+  inherited Create;
+  FContext := AContext;
+  FCtx := TRttiContext.Create;
+  FObjectType := FCtx.GetType(ATypeInfo);
+  FObject := AObject;
+end;
+
+destructor TOutputFormatterContext.Destroy;
+begin
+  FCtx.Free;
+  inherited;
+end;
+
+function TOutputFormatterContext.GetHttpContext: IHttpContext;
+begin
+  Result := FContext;
+end;
+
+function TOutputFormatterContext.GetObject: TValue;
+begin
+  Result := FObject;
+end;
+
+function TOutputFormatterContext.GetObjectType: TRttiType;
+begin
+  Result := FObjectType;
+end;
 
 { TJsonResult }
 
@@ -110,6 +169,56 @@ begin
   AContext.Response.Write(FContent);
 end;
 
+{ TObjectResult<T> }
+
+constructor TObjectResult<T>.Create(const AValue: T; AStatusCode: Integer);
+begin
+  inherited Create;
+  FValue := AValue;
+  FStatusCode := AStatusCode;
+end;
+
+procedure TObjectResult<T>.Execute(AContext: IHttpContext);
+var
+  Ctx: IOutputFormatterContext;
+  Formatter: IOutputFormatter;
+  Selector: IOutputFormatterSelector;
+  Formatters: TArray<IOutputFormatter>;
+begin
+  AContext.Response.StatusCode := FStatusCode;
+  Ctx := TOutputFormatterContext.Create(AContext, TypeInfo(T), TValue.From<T>(FValue));
+  
+  Formatter := nil;
+  
+  // 1. Resolve Selector
+  if AContext.Services <> nil then
+  begin
+    var SelectorObj := AContext.Services.GetServiceAsInterface(TServiceType.FromInterface(TypeInfo(IOutputFormatterSelector)));
+    if SelectorObj <> nil then
+    begin
+       Selector := SelectorObj as IOutputFormatterSelector;
+
+       // 2. Resolve Formatters via Registry
+       var RegistryObj := AContext.Services.GetServiceAsInterface(TServiceType.FromInterface(TypeInfo(IOutputFormatterRegistry)));
+       if RegistryObj <> nil then
+       begin
+          var Registry := RegistryObj as IOutputFormatterRegistry;
+          Formatters := Registry.GetAll;
+          
+          if Length(Formatters) > 0 then
+            Formatter := Selector.SelectFormatter(Ctx, Formatters);
+       end;
+    end;
+  end;
+
+  // 3. Fallback to JSON default if no selector or no match
+  if Formatter = nil then
+    Formatter := TJsonOutputFormatter.Create;
+    
+  if Formatter.CanWriteResult(Ctx) then
+    Formatter.Write(Ctx);
+end;
+
 { Results }
 
 class function Results.Ok: IResult;
@@ -119,12 +228,17 @@ end;
 
 class function Results.Ok(const AValue: string): IResult;
 begin
+  // Optimization: String is likely raw content or JSON, but to be safe for API, treat as object?
+  // No, typical Results.Ok("some string") expects text/plain or json string?
+  // Current behavior was Json. Let's keep it compatible but strictly it should be generic.
+  // Overload ambiguity: Ok("text") vs Ok<string>("text").
+  // Let's assume non-generic overload implies direct string content (Json result in old code).
   Result := TJsonResult.Create(AValue, 200);
 end;
 
 class function Results.Ok<T>(const AValue: T): IResult;
 begin
-  Result := TJsonResult.Create(TDextJson.Serialize<T>(AValue), 200);
+  Result := TObjectResult<T>.Create(AValue, 200);
 end;
 
 class function Results.Created(const AUri, AValue: string): IResult;
@@ -135,7 +249,7 @@ end;
 
 class function Results.Created<T>(const AUri: string; const AValue: T): IResult;
 begin
-  Result := TJsonResult.Create(TDextJson.Serialize<T>(AValue), 201);
+  Result := TObjectResult<T>.Create(AValue, 201);
 end;
 
 class function Results.BadRequest: IResult;

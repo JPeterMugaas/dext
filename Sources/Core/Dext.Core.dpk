@@ -144,7 +144,12 @@ contains
   Dext.Entity.Naming in '..\Entity\Dext.Entity.Naming.pas',
   Dext.Entity.Attributes in '..\Entity\Dext.Entity.Attributes.pas',
   Dext.Collections in 'Dext.Collections.pas',
-  Dext.Threading.Async in 'Dext.Threading.Async.pas';
+  Dext.Threading.Async in 'Dext.Threading.Async.pas',
+  Dext.Web.Extensions in 'Dext.Web.Extensions.pas',
+  Dext.Http.Formatters.Interfaces in 'Dext.Http.Formatters.Interfaces.pas',
+  Dext.Http.Versioning in 'Dext.Http.Versioning.pas',
+  Dext.Http.Formatters.Selector in 'Dext.Http.Formatters.Selector.pas',
+  Dext.Http.Formatters.Json in 'Dext.Http.Formatters.Json.pas';
 
 end.
 

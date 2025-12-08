@@ -8,13 +8,19 @@ Este documento foca nas funcionalidades de alto nível do framework web (API, MV
 
 ## 🚀 Funcionalidades Core (Web)
 
-### 1. Observability & Monitoring
-Suporte nativo a padrões abertos de monitoramento.
-- [ ] **OpenTelemetry Support**: Integração completa com OTel.
-  - Rastreamento automático de Requests (Middleware).
-  - Propagação de Contexto (W3C Trace Context).
-  - Exportadores para Jaeger/Zipkin/OTLP.
-- [ ] **Metrics Dashboard**: Endpoint `/metrics` (Prometheus format) nativo.
+### 1. Web API Improvements (Prioridade Alta) 🔥
+Melhorias na experiência de construção de APIs robustas e profissionais.
+- [x] **Content Negotiation Avançado**: Suporte a múltiplos formatos de saída baseados no header `Accept`.
+  - [x] Interfaces: `IOutputFormatter` (JSON, XML, CSV).
+  - [x] Implementação padrão JSON (já existente, mas desacoplar).
+  - [ ] Suporte a XML (`text/xml`, `application/xml`) -> *Próximo passo.*
+- [x] **API Versioning**: Estratégias para versionamento de endpoints.
+  - [x] Via URL: `/v1/users` (Route Constraints).
+  - [x] Via Query String: `?api-version=1.0`.
+  - [x] Via Header: `X-Version: 1.0` ou `Accept` header.
+- [ ] **OData Support**: Suporte parcial a queryable APIs (integrado com Dext Entity).
+- [ ] **GraphQL Support**: Endpoint `/graphql` nativo com suporte a Queries, Mutations e Subscriptions.
+- [ ] **gRPC Support**: Implementação de serviços gRPC de alta performance (Protobuf).
 
 ### 2. MVC & Views Engine
 Expansão do suporte para aplicações Web completas (Server-Side Rendering).
@@ -26,13 +32,13 @@ Expansão do suporte para aplicações Web completas (Server-Side Rendering).
   - `ViewBag`/`ViewData`: Passagem de dados dinâmica.
   - `TagHelpers`: Componentes reutilizáveis em views (ex: `<dext-form>`).
 
-### 3. Web API Improvements
-Melhorias contínuas na experiência de construção de APIs.
-- [ ] **Content Negotiation Avançado**: Suporte a XML, Protobuf e outros formatos via formatters plugáveis.
-- [ ] **API Versioning**: Suporte nativo a versionamento de API (URL, Header, QueryString).
-- [ ] **OData Support**: Suporte parcial a queryable APIs (integrado com Dext Entity).
-- [ ] **GraphQL Support**: Endpoint `/graphql` nativo com suporte a Queries, Mutations e Subscriptions.
-- [ ] **gRPC Support**: Implementação de serviços gRPC de alta performance (Protobuf) para comunicação inter-serviços.
+### 3. Observability & Monitoring
+Suporte nativo a padrões abertos de monitoramento para produção.
+- [ ] **OpenTelemetry Support**: Integração completa com OTel.
+  - Rastreamento automático de Requests (Middleware).
+  - Propagação de Contexto (W3C Trace Context).
+  - Exportadores para Jaeger/Zipkin/OTLP.
+- [ ] **Metrics Dashboard**: Endpoint `/metrics` (Prometheus format) nativo.
 
 ### 4. Real-Time & Eventing (SignalR-like)
 Suporte a comunicação bidirecional em tempo real.
@@ -85,4 +91,3 @@ Modernização da stack de autenticação para padrões de mercado (OAuth2/OIDC)
 ### Fase 2: Ecosystem
 - [ ] **Dext.Identity**: Sistema de identidade completo (Users, Roles, Claims, OAuth2/OIDC).
 - [ ] **Dext.Blazor**: (Futuro) Componentes UI server-side ou integração com WebAssembly.
-

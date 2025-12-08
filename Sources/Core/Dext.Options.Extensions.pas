@@ -19,14 +19,13 @@ type
 
 implementation
 
+uses
+  Dext.Configuration.Binder;
+
 { TOptionsServiceCollectionExtensions }
 
 class procedure TOptionsServiceCollectionExtensions.AddOptions(Services: IServiceCollection);
 begin
-  // Register generic IOptions<> factory is tricky in Delphi without true generics in DI container resolution logic
-  // usually we register specific types.
-  // But Dext DI might not support open generics yet.
-  // So Configure<T> will register IOptions<T> specifically.
 end;
 
 class procedure TOptionsServiceCollectionExtensions.Configure<T>(Services: IServiceCollection; Configuration: IConfiguration);
@@ -36,13 +35,8 @@ begin
     TClass(TOptions<T>),
     function(Provider: IServiceProvider): TObject
     begin
-      // We capture Configuration here. 
-      // Ideally we should resolve IConfiguration from Provider, but passing it is easier for now if available.
-      // Or better:
-      // Result := TOptionsFactory.Create<T>(Provider.GetService<IConfiguration>());
-      
-      // Since we passed Configuration explicitly:
-      Result := TOptionsFactory.Create<T>(Configuration) as TObject;
+      var Value: T := TConfigurationBinder.Bind<T>(Configuration);
+      Result := TOptions<T>.Create(Value);
     end
   );
 end;
@@ -54,7 +48,8 @@ begin
     TClass(TOptions<T>),
     function(Provider: IServiceProvider): TObject
     begin
-      Result := TOptionsFactory.Create<T>(Section) as TObject;
+      var Value: T := TConfigurationBinder.Bind<T>(Section);
+      Result := TOptions<T>.Create(Value);
     end
   );
 end;

@@ -41,7 +41,7 @@ type
     function GetService(const AServiceType: TServiceType): TObject;
     function GetServiceAsInterface(const AServiceType: TServiceType): IInterface;
     function GetRequiredService(const AServiceType: TServiceType): TObject;
-    function CreateScope: IInterface; // Returns IServiceScope
+    function CreateScope: IServiceScope;
   end;
 
   TDextServiceScope = class(TInterfacedObject, IServiceScope)
@@ -211,7 +211,7 @@ begin
   inherited Destroy;
 end;
 
-function TDextServiceProvider.CreateScope: IInterface;
+function TDextServiceProvider.CreateScope: IServiceScope;
 var
   ScopedProvider: IServiceProvider;
 begin

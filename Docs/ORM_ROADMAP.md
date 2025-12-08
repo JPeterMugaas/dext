@@ -208,7 +208,9 @@ Foco em otimização extrema, gerenciamento de memória e observabilidade.
    - [x] Exclusão lógica transparente
 2. **Multi-Tenancy** (2 semanas)
    - Query filters + Tenant discriminator
-   - Isolamento de dados por tenant
+   - Isolamento de dados por tenants
+   - **Estratégia 1: Single Database (Column)**: Todos no mesmo banco, separados por `TenantId`.
+   - **Estratégia 2: Schema per Tenant**: Um banco físico, schemas isolados (`tenant1.Users`, `tenant2.Users`).
 3. **Data Seeding** (3 dias)
    - `UseSeeding()` + fluent API
 4. **Auditing** (1 semana)

@@ -1,0 +1,113 @@
+unit Dext.Web.Extensions;
+
+interface
+
+uses
+  System.Generics.Collections,
+  System.SysUtils,
+  System.TypInfo,
+  Dext.DI.Interfaces,
+  Dext.Http.Interfaces,
+  Dext.Http.Formatters.Interfaces,
+  Dext.Http.Formatters.Selector,
+  Dext.Http.Formatters.Json;
+
+type
+  TWebDIHelpers = class
+  public
+    class procedure AddContentNegotiation(Services: IServiceCollection);
+  end;
+
+  TWebRouteHelpers = class
+  public
+    class procedure HasApiVersion(Builder: IApplicationBuilder; const Version: string);
+  end;
+
+  TOutputFormatterRegistry = class(TInterfacedObject, IOutputFormatterRegistry)
+  private
+    FFormatters: TList<IOutputFormatter>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Add(Formatter: IOutputFormatter);
+    function GetAll: TArray<IOutputFormatter>;
+  end;
+
+implementation
+
+{ TOutputFormatterRegistry }
+
+constructor TOutputFormatterRegistry.Create;
+begin
+  inherited Create;
+  FFormatters := TList<IOutputFormatter>.Create;
+end;
+
+destructor TOutputFormatterRegistry.Destroy;
+begin
+  FFormatters.Free;
+  inherited;
+end;
+
+procedure TOutputFormatterRegistry.Add(Formatter: IOutputFormatter);
+begin
+  FFormatters.Add(Formatter);
+end;
+
+function TOutputFormatterRegistry.GetAll: TArray<IOutputFormatter>;
+begin
+  Result := FFormatters.ToArray;
+end;
+
+{ TWebDIHelpers }
+
+class procedure TWebDIHelpers.AddContentNegotiation(Services: IServiceCollection);
+begin
+  // Register Registry
+  var Registry := TOutputFormatterRegistry.Create;
+  // Add Default JSON Formatter
+  Registry.Add(TJsonOutputFormatter.Create);
+  
+  // Register as Singleton Instance
+  // Note: We are capturing 'Registry' variable in anonymous method.
+  // Registry (Interface or Object?)
+  // TOutputFormatterRegistry is TInterfacedObject.
+  // Registry is TOutputFormatterRegistry (Object).
+  // Be careful with refcounting if we mix object/interface.
+  // Better: Register TOutputFormatterRegistry as Singleton implementation, and use a factory that configures it
+  // OR just assume Singleton holds it.
+  
+  Services.AddSingleton(TServiceType.FromInterface(TypeInfo(IOutputFormatterRegistry)), TOutputFormatterRegistry, 
+    function(P: IServiceProvider): TObject
+    begin
+       Result := Registry;
+    end
+  );
+
+  // Register Selector
+  Services.AddSingleton(TServiceType.FromInterface(TypeInfo(IOutputFormatterSelector)), TDefaultOutputFormatterSelector);
+end;
+
+{ TWebRouteHelpers }
+
+class procedure TWebRouteHelpers.HasApiVersion(Builder: IApplicationBuilder; const Version: string);
+begin
+  // Builders typically have state of "Last Added Route".
+  // Dext.Http.Interfaces defines UpdateLastRouteMetadata.
+  var OriginalRoutes := Builder.GetRoutes;
+  if Length(OriginalRoutes) > 0 then
+  begin
+    var LastRoute := OriginalRoutes[High(OriginalRoutes)];
+    
+    // Add version to array
+    // LastRoute is TEndpointMetadata (Record)
+    var NewVersions := LastRoute.ApiVersions;
+    SetLength(NewVersions, Length(NewVersions) + 1);
+    NewVersions[High(NewVersions)] := Version;
+    
+    LastRoute.ApiVersions := NewVersions;
+    Builder.UpdateLastRouteMetadata(LastRoute);
+  end;
+end;
+
+end.

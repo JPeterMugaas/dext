@@ -217,6 +217,11 @@
         <DCCReference Include="..\Entity\Dext.Entity.Attributes.pas"/>
         <DCCReference Include="Dext.Collections.pas"/>
         <DCCReference Include="Dext.Threading.Async.pas"/>
+        <DCCReference Include="Dext.Web.Extensions.pas"/>
+        <DCCReference Include="Dext.Http.Formatters.Interfaces.pas"/>
+        <DCCReference Include="Dext.Http.Versioning.pas"/>
+        <DCCReference Include="Dext.Http.Formatters.Selector.pas"/>
+        <DCCReference Include="Dext.Http.Formatters.Json.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

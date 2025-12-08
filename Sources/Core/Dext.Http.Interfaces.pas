@@ -31,6 +31,7 @@ type
     Tags: TArray<string>;
     Parameters: TArray<string>; // Added parameters
     Security: TArray<string>;   // Security schemes required
+    ApiVersions: TArray<string>; // Supported API versions (e.g. '1.0', '2.0')
   end;
 
   IResult = interface

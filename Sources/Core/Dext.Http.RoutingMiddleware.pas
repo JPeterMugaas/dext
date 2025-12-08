@@ -42,7 +42,7 @@ begin
   var Method := AContext.Request.Method;
 
   // ✅ USAR RouteMatcher via interface com suporte a Método
-  if FRouteMatcher.FindMatchingRoute(Method, Path, Handler, RouteParams, Metadata) then
+  if FRouteMatcher.FindMatchingRoute(AContext, Handler, RouteParams, Metadata) then
   begin
     try
       // ✅ INJETAR parâmetros de rota se encontrados

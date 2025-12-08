@@ -3,13 +3,16 @@
 {$APPTYPE CONSOLE}
 
 uses
+  FastMM5,
   System.SysUtils,
   System.Rtti,
   Dext, // ✅ The only core unit needed!
+  Dext.Web.Extensions,
   ControllerExample.Controller in 'ControllerExample.Controller.pas',
   ControllerExample.Services in 'ControllerExample.Services.pas';
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   try
     WriteLn('🚀 Starting Dext Controller Example...');
     var App: IWebApplication := TDextApplication.Create;
@@ -23,6 +26,9 @@ begin
     App.Services
       .AddSingleton<IGreetingService, TGreetingService>
       .AddControllers;
+      
+    // 2.1 Enable Content Negotiation
+    TWebDIHelpers.AddContentNegotiation(App.Services);
     
     // 3. Register Health Checks
     App.Services.AddHealthChecks
@@ -58,7 +64,39 @@ begin
     // 6. Map Controllers
     App.MapControllers;
 
+    // 6.1 Map Versioned API Examples (Manual Routing)
+    // V1
+    App.Builder.MapGet('/api/versioned', 
+      procedure(Ctx: IHttpContext)
+      begin
+        Ctx.Response.Json('{"version": "1.0", "message": "This is API v1"}');
+      end);
+    TWebRouteHelpers.HasApiVersion(App.Builder, '1.0');
+      
+    // V2
+    App.Builder.MapGet('/api/versioned', 
+      procedure(Ctx: IHttpContext)
+      begin
+        Ctx.Response.Json('{"version": "2.0", "message": "This is API v2 - Newer and Better!"}');
+      end);
+    TWebRouteHelpers.HasApiVersion(App.Builder, '2.0');
+
     // 7. Run Application
+    WriteLn('');
+    WriteLn('📋 Feature Test Instructions:');
+    WriteLn('---------------------------------------------------------');
+    WriteLn('1. Content Negotiation (defaults to JSON):');
+    WriteLn('   curl -H "Accept: application/json" http://localhost:8080/api/greet/negotiated');
+    WriteLn('');
+    WriteLn('2. API Versioning (Query String):');
+    WriteLn('   v1: curl "http://localhost:8080/api/versioned?api-version=1.0"');
+    WriteLn('   v2: curl "http://localhost:8080/api/versioned?api-version=2.0"');
+    WriteLn('');
+    WriteLn('3. API Versioning (Header):');
+    WriteLn('   v1: curl -H "X-Version: 1.0" http://localhost:8080/api/versioned');
+    WriteLn('   v2: curl -H "X-Version: 2.0" http://localhost:8080/api/versioned');
+    WriteLn('---------------------------------------------------------');
+    
     App.Run(8080);
   except
     on E: Exception do
