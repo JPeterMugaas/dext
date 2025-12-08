@@ -142,6 +142,25 @@ begin
 end.
 ```
 
+## 🧩 Model Binding & Injeção de Dependência
+
+Dext resolve dependências automaticamente e deserializa JSON bodies para Records/Classes:
+
+```pascal
+// 1. Registre os Serviços
+App.Services.AddSingleton<IEmailService, TEmailService>;
+
+// 2. Defina o Endpoint com Dependências
+// - 'Dto': Automaticamente populado a partir do JSON Body (Smart Binding)
+// - 'EmailService': Automaticamente injetado do Container de DI
+App.MapPostR<TUserDto, IEmailService, IResult>('/register',
+  function(Dto: TUserDto; EmailService: IEmailService): IResult
+  begin
+    EmailService.SendWelcome(Dto.Email);
+    Result := Results.Created('/login', 'User registered');
+  end);
+```
+
 ## 💎 Exemplo ORM (Fluent Query)
 
 O Dext ORM permite consultas expressivas e fortemente tipadas, eliminando SQL strings mágicas:
@@ -191,6 +210,31 @@ var Task := TAsyncTask.Run<TUserProfile>(
         ShowError('Verification Failed');
     end)
   .Start; // Inicia a execução
+
+// Controle de Timeout e Cancelamento
+var CTS := TCancellationSource.Create(5000); // 5s Timeout
+
+TAsyncTask.Run<TReport>(
+  function: TReport
+  begin
+    // Passa o token para operação de longa duração
+    Result := ReportService.GenerateHeavyReport(CTS.Token);
+  end)
+  .WithCancellation(CTS.Token) // Vincula token à pipeline da Task
+  .OnComplete(
+    procedure(Report: TReport)
+    begin
+      ShowReport(Report);
+    end)
+  .OnException(
+    procedure(Ex: Exception)
+    begin
+      if Ex is EOperationCancelled then
+        ShowMessage('Operação expirada (Timeout)!')
+      else
+        ShowError(Ex.Message);
+    end)
+  .Start;
 ```
 
 ## 🧪 Exemplos e Testes

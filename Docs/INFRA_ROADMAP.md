@@ -62,3 +62,16 @@ Evolução da `Fluent Tasks API` para suportar cenários complexos de orquestra�
   - Log automático de tempo de execução, exceções e cancelamentos via `Core.Telemetry`.
 
 ---
+
+## 🧪 Testing Ecosystem & Quality Assurance
+
+Ferramentas para garantir a robustez e testabilidade das aplicações construídas com Dext.
+
+- [ ] **Dext.Mock**: Biblioteca de Mocking dinâmica inspirada no [Moq](https://github.com/moq/moq4).
+  - Geração de Mocks de Interfaces em runtime via RTTI/VirtualInterface.
+  - Sintaxe fluente: `Mock<IUser>.Setup.Returns...`
+  - Verificação de chamadas: `Mock.Verify(m => m.SendEmail, Times.Once)`
+- [ ] **Fluent Assertions**: Asserções expressivas e legíveis para testes unitários (DUnitX).
+  - Sintaxe humana: `Expect(Value).To.Be.EqualTo(10);`
+  - Melhores mensagens de erro automáticas.
+- [ ] **Integration Test Host**: `TestServer` em memória para testar APIs sem subir sockets reais (in-memory HTTP transport).

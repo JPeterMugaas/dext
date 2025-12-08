@@ -141,7 +141,27 @@ begin
     end);
 
   App.Run(8080);
+  App.Run(8080);
 end.
+```
+
+## 🧩 Model Binding & Dependency Injection
+
+Dext automatically resolves dependencies and deserializes JSON bodies into Records/Classes:
+
+```pascal
+// 1. Register Services
+App.Services.AddSingleton<IEmailService, TEmailService>;
+
+// 2. Define Endpoint with Dependencies
+// - 'Dto': Automatically bound from JSON Body (Smart Binding)
+// - 'EmailService': Automatically injected from DI Container
+App.MapPostR<TUserDto, IEmailService, IResult>('/register',
+  function(Dto: TUserDto; EmailService: IEmailService): IResult
+  begin
+    EmailService.SendWelcome(Dto.Email);
+    Result := Results.Created('/login', 'User registered');
+  end);
 ```
 
 ## 💎 ORM Example (Fluent Query)
@@ -193,6 +213,31 @@ var Task := TAsyncTask.Run<TUserProfile>(
         ShowError('Verification Failed');
     end)
   .Start; // Starts execution
+
+// Timeout & Cancellation Handling
+var CTS := TCancellationSource.Create(5000); // 5s Timeout
+
+TAsyncTask.Run<TReport>(
+  function: TReport
+  begin
+    // Pass token to long-running operation
+    Result := ReportService.GenerateHeavyReport(CTS.Token);
+  end)
+  .WithCancellation(CTS.Token) // Links token to Task pipeline
+  .OnComplete(
+    procedure(Report: TReport)
+    begin
+      ShowReport(Report);
+    end)
+  .OnException(
+    procedure(Ex: Exception)
+    begin
+      if Ex is EOperationCancelled then
+        ShowMessage('Operation timed out!')
+      else
+        ShowError(Ex.Message);
+    end)
+  .Start;
 ```
 
 ## 🧪 Examples and Tests
