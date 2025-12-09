@@ -157,6 +157,8 @@ end;
 
 destructor THostedServiceManager.Destroy;
 begin
+  // Services are interfaces managed by ARC
+  // Just free the list container, not the services themselves
   FServices.Free;
   inherited;
 end;

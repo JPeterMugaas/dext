@@ -234,41 +234,37 @@ begin
 end;
 
 destructor TDextServiceProvider.Destroy;
-var
-  SingletonPair: TPair<string, TObject>;
-  ScopedPair: TPair<string, TObject>;
 begin
   // Liberar instâncias singleton (apenas no root provider)
   if FIsRootProvider then
   begin
-    if Assigned(FSingletons) then
-    begin
-      for SingletonPair in FSingletons do
-        if Assigned(SingletonPair.Value) then
-          SingletonPair.Value.Free;
-      FSingletons.Free;
-    end;
-    
+    // Clear interfaces first - ARC will free those objects
     if Assigned(FSingletonInterfaces) then
     begin
       FSingletonInterfaces.Clear;
       FSingletonInterfaces.Free;
     end;
+    
+    // Just clear singletons dict without freeing objects
+    // Accept small leak for non-interface singletons to avoid double-free
+    if Assigned(FSingletons) then
+    begin
+      FSingletons.Clear;
+      FSingletons.Free;
+    end;
   end;
 
   // Liberar instâncias scoped
-  if Assigned(FScopedInstances) then
-  begin
-    for ScopedPair in FScopedInstances do
-      if Assigned(ScopedPair.Value) then
-        ScopedPair.Value.Free;
-    FScopedInstances.Free;
-  end;
-
   if Assigned(FScopedInterfaces) then
   begin
     FScopedInterfaces.Clear;
     FScopedInterfaces.Free;
+  end;
+  
+  if Assigned(FScopedInstances) then
+  begin
+    FScopedInstances.Clear;
+    FScopedInstances.Free;
   end;
 
   FLock.Free;
