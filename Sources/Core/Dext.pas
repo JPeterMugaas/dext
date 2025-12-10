@@ -369,7 +369,6 @@ function Defer(const AActions: array of TProc): TArray<IDeferred>; overload;
 
 implementation
 
-
 { Auto<T> }
 
 constructor Auto<T>.Create(AValue: T);
@@ -410,54 +409,9 @@ begin
 end;
 
 function TDextServicesHelper.AddHealthChecks: THealthCheckBuilder;
-var
-  Services: IServiceCollection;
-  SharedChecks: TList<TClass>; // ✅ This list will be owned by the builder
-  Factory: TFunc<IServiceProvider, TObject>;
-  CapturedChecks: TArray<TClass>; // ✅ Copy for factory closure
-  UpdateCallback: TProc; // ✅ Callback to update CapturedChecks
 begin
-
-  Services := Self.Unwrap;
-  
-  // Create a shared list that will be owned by the builder
-  SharedChecks := TList<TClass>.Create;
-  
-  // Initialize empty array
-  SetLength(CapturedChecks, 0);
-  
-  // Create callback that will be called by Build() to copy checks
-  UpdateCallback := procedure
-    begin
-      CapturedChecks := SharedChecks.ToArray;
-    end;
-  
-  // Create factory that captures the array (will be populated by Build)
-  Factory := function(Provider: IServiceProvider): TObject
-    var
-      Service: THealthCheckService;
-      CheckClass: TClass;
-    begin
-      Service := THealthCheckService.Create;
-      
-      // Register all checks that were captured
-      for CheckClass in CapturedChecks do
-      begin
-        Service.RegisterCheck(CheckClass);
-      end;
-      
-      Result := Service;
-    end;
-  
-  // ✅ Register THealthCheckService IMMEDIATELY as a singleton with a factory
-  Services.AddSingleton(
-    TServiceType.FromClass(THealthCheckService),
-    THealthCheckService,
-    Factory
-  );
-
-  // Create builder with reference to the shared list AND the update callback
-  Result := THealthCheckBuilder.Create(Services, SharedChecks, UpdateCallback);
+  // The Builder now handles its own internal list and registration logic via .Build
+  Result := THealthCheckBuilder.Create(Self.Unwrap);
 end;
 
 function TDextServicesHelper.AddBackgroundServices: TBackgroundServiceBuilder;

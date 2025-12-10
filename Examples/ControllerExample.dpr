@@ -4,15 +4,18 @@
 
 uses
   FastMM5,
+  Windows,
   System.SysUtils,
   System.Rtti,
-  Dext, // ✅ All-in-one framework unit
+  Dext in '..\Sources\Core\Dext.pas',
+  Dext.HealthChecks in '..\Sources\Core\Dext.HealthChecks.pas', // ✅ Force use of modified source
   Dext.Web.Extensions,
   Dext.Http.Middleware.Logging, // Added logging middleware
   ControllerExample.Controller in 'ControllerExample.Controller.pas',
   ControllerExample.Services in 'ControllerExample.Services.pas';
 
 begin
+  SetConsoleOutputCP(65001); // Fix console encoding
   ReportMemoryLeaksOnShutdown := True;
   try
     WriteLn('🚀 Starting Dext Controller Example...');

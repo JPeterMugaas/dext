@@ -247,10 +247,13 @@ begin
       FSingletonInterfaces.Free;
     end;
     
-    // Just clear singletons dict without freeing objects
-    // Accept small leak for non-interface singletons to avoid double-free
     if Assigned(FSingletons) then
     begin
+      // Explicitly free object instances as TDictionary does not own them
+      var SingletonObj: TObject;
+      for SingletonObj in FSingletons.Values do
+        SingletonObj.Free;
+        
       FSingletons.Clear;
       FSingletons.Free;
     end;

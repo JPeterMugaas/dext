@@ -171,7 +171,6 @@ var
   WebHost: IWebHost;
   RequestHandler: TRequestDelegate;
   HostedManager: THostedServiceManager;
-  Obj: TObject;
 begin
   // ✅ REBUILD ServiceProvider to include all services registered after Create()
   FServiceProvider := nil; // Release old provider

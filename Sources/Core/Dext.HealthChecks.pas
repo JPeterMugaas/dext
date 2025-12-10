@@ -74,10 +74,8 @@ type
   private
     FServices: IServiceCollection;
     FChecks: TList<TClass>;
-    FSharedChecks: TList<TClass>; // ✅ Shared with factory
-    FUpdateCallback: TProc; // ✅ Callback to update captured checks
   public
-    constructor Create(Services: IServiceCollection; SharedChecks: TList<TClass>; UpdateCallback: TProc);
+    constructor Create(Services: IServiceCollection);
     destructor Destroy; override;
     function AddCheck<T: class, constructor>: THealthCheckBuilder;
     procedure Build; // Registers the service
@@ -238,23 +236,16 @@ end;
 
 { THealthCheckBuilder }
 
-constructor THealthCheckBuilder.Create(Services: IServiceCollection; SharedChecks: TList<TClass>; UpdateCallback: TProc);
+constructor THealthCheckBuilder.Create(Services: IServiceCollection);
 begin
   inherited Create;
   FServices := Services;
-  FSharedChecks := SharedChecks; // Reference to shared list
-  FChecks := FSharedChecks; // Use the same list
-  FUpdateCallback := UpdateCallback; // Store callback
+  FChecks := TList<TClass>.Create;
 end;
 
 destructor THealthCheckBuilder.Destroy;
 begin
-  // ✅ Free the shared list - we own it
-  if Assigned(FSharedChecks) then
-    FSharedChecks.Free;
-  FChecks := nil;
-  FSharedChecks := nil;
-  FUpdateCallback := nil;
+  FChecks.Free;
   inherited;
 end;
 
@@ -263,20 +254,36 @@ begin
   // Register the check implementation
   FServices.AddTransient(TServiceType.FromClass(T), T);
   
-  // Add to our SHARED list (will be visible to the factory)
-  FSharedChecks.Add(T);
+  // Add to our list
+  FChecks.Add(T);
   
   Result := Self;
 end;
 
 procedure THealthCheckBuilder.Build;
+var
+  CapturedChecks: TArray<TClass>;
+  Factory: TFunc<IServiceProvider, TObject>;
 begin
+  CapturedChecks := FChecks.ToArray;
+  
+  // Create an explicit factory to help the compiler resolve the overload
+  Factory := function(Provider: IServiceProvider): TObject
+    var
+      Service: THealthCheckService;
+      CheckClass: TClass;
+    begin
+      Service := THealthCheckService.Create; // No Provider injected here
+      for CheckClass in CapturedChecks do
+        Service.RegisterCheck(CheckClass);
+      Result := Service;
+    end;
 
-  
-  // ✅ Call the callback to copy checks to the factory's captured array
-  if Assigned(FUpdateCallback) then
-    FUpdateCallback();
-  
+  FServices.AddSingleton(
+    TServiceType.FromClass(THealthCheckService),
+    THealthCheckService,
+    Factory
+  );
   Self.Free;
 end;
 

@@ -48,36 +48,32 @@ implementation
 class function TDextServiceCollectionExtensions.AddHealthChecks(Services: IServiceCollection): THealthCheckBuilder;
 var
   SharedChecks: TList<TClass>;
-  CapturedChecks: TArray<TClass>;
-  UpdateCallback: TProc;
   Factory: TFunc<IServiceProvider, TObject>;
 begin
-  SharedChecks := TList<TClass>.Create;
-  SetLength(CapturedChecks, 0);
-  
-  UpdateCallback := procedure
-    begin
-      CapturedChecks := SharedChecks.ToArray;
-    end;
+  SharedChecks := TList<TClass>.Create; // Intentionally leaks config list
   
   Factory := function(Provider: IServiceProvider): TObject
     var
-      Service: THealthCheckService;
-      CheckClass: TClass;
+      ServiceList: TList<TClass>;
     begin
-      Service := THealthCheckService.Create;
-      for CheckClass in CapturedChecks do
-        Service.RegisterCheck(CheckClass);
-      Result := Service;
+      Writeln('Dext.Core.Extensions: Factory Executing...');
+      ServiceList := TList<TClass>.Create;
+      if SharedChecks <> nil then
+        ServiceList.AddRange(SharedChecks)
+      else
+        Writeln('Dext.Core.Extensions: SharedChecks is NIL');
+        
+      Result := THealthCheckService.Create(ServiceList);
+      Writeln(Format('Dext.Core.Extensions: Created Service at %p', [Pointer(Result)]));
     end;
   
   Services.AddSingleton(
-    TServiceType.FromClass(THealthCheckService),
+    TServiceType.FromInterface(IHealthCheckService),
     THealthCheckService,
     Factory
   );
   
-  Result := THealthCheckBuilder.Create(Services, SharedChecks, UpdateCallback);
+  Result := THealthCheckBuilder.Create(Services, SharedChecks);
 end;
 
 class function TDextServiceCollectionExtensions.AddBackgroundServices(Services: IServiceCollection): TBackgroundServiceBuilder;
