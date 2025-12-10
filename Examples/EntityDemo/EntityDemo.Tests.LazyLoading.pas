@@ -1,4 +1,4 @@
-unit EntityDemo.Tests.LazyLoading;
+﻿unit EntityDemo.Tests.LazyLoading;
 
 interface
 
@@ -200,7 +200,7 @@ begin
     if BodyLength <> ExpectedLength then
     begin
       WriteLn(Format('  ⚠️  Length mismatch: Got %d, Expected %d (diff: %d)', [BodyLength, ExpectedLength, BodyLength - ExpectedLength]));
-      
+
       // Check last characters
       if BodyLength > 0 then
       begin

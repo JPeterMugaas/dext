@@ -25,6 +25,21 @@ Um "Object Inspector" para código-fonte.
 - [ ] **Smart Completion**: Autocomplete de tabelas e colunas do banco configurado no projeto, direto na string SQL.
 - [ ] **Syntax Highlighting**: Colorização de sintaxe SQL dentro das strings.
 
+### 4. Integrated Test Ecosystem (The "Rider" Experience)
+Arquitetura de execução de testes fora do processo da IDE para estabilidade máxima.
+
+- [ ] **Test Runner Service**: Executável "Worker" que carrega a DLL de testes do projeto.
+  - Comunicação via HTTP/Sockets com o plugin da IDE.
+  - Execução isolada (Crash no teste não fecha o Delphi).
+- [ ] **Inline Testing (Gutter Icons)**:
+  - Uso do **DelphiAST** para identificar métodos de teste no código fonte aberto.
+  - Botões "Run/Debug" desenhados diretamente na margem do editor.
+  - Feedback visual (Verde/Vermelho) pintado no editor após execução.
+- [ ] **Smart Code Coverage**:
+  - Instrumentação de código fonte em memória usando **DelphiAST** (Source Instrumentation).
+  - Mapa de calor visual (Highlighting) nas linhas executadas diretamente na IDE.
+  - Relatórios precisos mesmo com Generics e Lambdas.
+
 ---
 
 ## ⚡ Productivity Tools

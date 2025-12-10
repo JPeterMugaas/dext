@@ -133,7 +133,7 @@ var
   CmdIntf: IInterface;
   Cmd: IDbCommand;
 begin
-  WriteLn('   ðŸš€ Applying migration: ' + AMigration.GetId);
+  WriteLn('   🚀 Applying migration: ' + AMigration.GetId);
   
   FContext.BeginTransaction;
   try
@@ -185,9 +185,9 @@ begin
     Available := TMigrationRegistry.Instance.GetMigrations;
     
     if Length(Available) = 0 then
-      WriteLn('   âš ï¸ No migrations found in registry.')
+      WriteLn('   ⚠️No migrations found in registry.')
     else
-      WriteLn('   ðŸ” Found ' + Length(Available).ToString + ' migrations in registry.');
+      WriteLn('   🔎 Found ' + Length(Available).ToString + ' migrations in registry.');
     
     for Migration in Available do
     begin
@@ -197,7 +197,7 @@ begin
       end
       else
       begin
-        // WriteLn('   â­ï¸ Skipping applied migration: ' + Migration.GetId);
+        // WriteLn('   ⏭️ Skipping applied migration: ' + Migration.GetId);
       end;
     end;
   finally

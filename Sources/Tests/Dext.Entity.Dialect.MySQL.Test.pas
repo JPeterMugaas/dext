@@ -1,4 +1,4 @@
-unit Dext.Entity.Dialect.MySQL.Test;
+﻿unit Dext.Entity.Dialect.MySQL.Test;
 
 interface
 

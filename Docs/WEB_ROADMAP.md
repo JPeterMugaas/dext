@@ -8,6 +8,13 @@ Este documento foca nas funcionalidades de alto nível do framework web (API, MV
 
 ## 🚀 Funcionalidades Core (Web)
 
+### 0. HTTP Abstractions (Refactoring for Performance) 🔥
+Blindagem das interfaces para suportar alta performance (Zero-Copy) no futuro.
+- [ ] **Lazy Headers/Query**: `GetHeader(Name)` ao invés de retornar `TDictionary` completo.
+- [ ] **Items Bag**: Adicionar `Items: TDictionary<string, TValue>` em `IHttpContext` para comunicação entre Middlewares.
+- [ ] **Stream Writing**: Adicionar `Response.Write(TStream)` para suportar envio eficiente de arquivos.
+- [ ] **Body Abstraction**: Abstrair o acesso ao Body para suportar `Span<Byte>` futuramente.
+
 ### 1. Web API Improvements (Prioridade Alta) 🔥
 Melhorias na experiência de construção de APIs robustas e profissionais.
 - [x] **Content Negotiation Avançado**: Suporte a múltiplos formatos de saída baseados no header `Accept`.

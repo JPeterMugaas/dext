@@ -8,6 +8,24 @@ Este documento centraliza o desenvolvimento da infraestrutura de baixo nível do
 
 ## 🚀 High Performance HTTP Server (Clean Room Implementation)
 
+Estratégia de servidores plugáveis (`Server Adapters`) para permitir estabilidade imediata e performance extrema futura, sem quebrar a API pública.
+
+### 1. V1: Driver Indy (Estabilidade) - ✅ Concluído
+- [x] **Indy Wrapper**: Implementação baseada em `TIdHTTPServer` para compatibilidade máxima e estabilidade inicial.
+- [x] **Lazy Evaluation**: Refatoração de `IHttpRequest` para leitura de Headers e Query String sob demanda (evitar alocação de Dictionaries desnecessários).
+- [x] **Stream Wrapping**: Encapsulamento do `InputBuffer` do Indy para evitar cópia de memória no Body.
+
+### 2. V2: Enterprise Driver (Kestrel NativeAOT) - 📅 Planejado
+Estratégia para performance "estado da arte" usando o motor do ASP.NET Core via interoperabilidade nativa.
+- [ ] **NativeAOT Wrapper**: Biblioteca C# compilada como Native Library (`.dll`/`.so`) exportando interface C.
+- [ ] **Zero-Copy Bridge**: Passagem de ponteiros de memória (Pinned Memory) do .NET para o Delphi.
+- [ ] **TSpan<T>**: Implementação de `Memory<T>`/`Span<T>` no Delphi para ler os buffers do Kestrel sem alocação de strings.
+
+### 3. V3: Native Drivers (Bare Metal) - 🔮 Futuro
+Implementações 100% Pascal para cenários onde dependências externas não são desejadas.
+- [ ] **Windows**: Integração direta com `http.sys` (Kernel Mode).
+- [ ] **Linux**: Event Loop baseado em `epoll` integrado ao Scheduler do Dext.Async.
+
 Reescrita do núcleo HTTP para eliminar gargalos de arquiteturas legadas (Indy/WebBroker) e explorar recursos nativos do SO.
 
 ### 1. Windows: Kernel Mode (`http.sys`)
@@ -34,17 +52,22 @@ Eliminar o custo de conversão `UTF-8` <-> `UTF-16` (UnicodeString) no core do f
 
 ## 🛠️ Core Infrastructure
 
-### 1. Telemetry & Observability Foundation
+### 1. Memory Optimization
+- [ ] **TSpan<T>**: Estrutura para fatiamento de arrays/memória sem alocação (essencial para o JSON Parser V2).
+- [ ] **Zero-Allocation JSON**: Parser JSON baseado em `TSpan<Byte>` (UTF-8) para evitar transcoding para UTF-16.
+
+### 2. Telemetry & Observability Foundation
 Base para o suporte a OpenTelemetry nos frameworks superiores.
 - [ ] **Activity/Span API**: Abstração para rastreamento distribuído.
 - [ ] **Metrics API**: Contadores, Histogramas e Gauges de alta performance.
 - [ ] **Logging Abstraction**: Zero-allocation logging interface.
 
-### 2. Advanced Async & Concurrency
+### 3. Advanced Async & Concurrency
 Evolução da `Fluent Tasks API` para suportar cenários complexos de orquestração e alta performance.
 
 - [x] **Fluent Tasks Core**: Implementação base (`TAsyncTask`, `ThenBy`, `WithCancellation`).
 - [x] **Unsynchronized Callbacks**: Opção para executar callbacks em thread de background (evitar gargalo na Main Thread).
+- [ ] **Testing Scheduler**: Implementação de `DefaultScheduler` para permitir testes unitários determinísticos (síncronos) de código assíncrono.
   - *API*: `.OnCompleteAsync(proc)`, `.OnExceptionAsync(proc)`
 - [ ] **Composition Patterns (Fork/Join)**:
   - `WhenAll(Tasks)`: Aguardar múltiplas tasks finalizarem (Scatter-Gather).
@@ -63,15 +86,19 @@ Evolução da `Fluent Tasks API` para suportar cenários complexos de orquestra�
 
 ---
 
-## 🧪 Testing Ecosystem & Quality Assurance
+## 🧪 Testing Ecosystem & Quality Assurance (Dext.Testing)
 
-Ferramentas para garantir a robustez e testabilidade das aplicações construídas com Dext.
+### 1. Dext.Mock (AST-Based)
+Motor de Mocks construído sobre a engine `Dext.Expressions`.
+- [ ] **Interceptor**: Uso de `TVirtualInterface` conectado à AST.
+- [ ] **Argument Matchers DSL**: Record `It` para definição de regras (`It.IsAny<int>`, `It.Matches(Arg > 10)`).
+- [ ] **Async Mocking**: Suporte nativo a `ReturnsAsync` (fabricação de Tasks completadas).
 
-- [ ] **Dext.Mock**: Biblioteca de Mocking dinâmica inspirada no [Moq](https://github.com/moq/moq4).
-  - Geração de Mocks de Interfaces em runtime via RTTI/VirtualInterface.
-  - Sintaxe fluente: `Mock<IUser>.Setup.Returns...`
-  - Verificação de chamadas: `Mock.Verify(m => m.SendEmail, Times.Once)`
-- [ ] **Fluent Assertions**: Asserções expressivas e legíveis para testes unitários (DUnitX).
-  - Sintaxe humana: `Expect(Value).To.Be.EqualTo(10);`
-  - Melhores mensagens de erro automáticas.
-- [ ] **Integration Test Host**: `TestServer` em memória para testar APIs sem subir sockets reais (in-memory HTTP transport).
+### 2. Fluent Assertions
+- [ ] **Fluent API**: Sintaxe `Expect(Value).Should.Be(10)`.
+- [ ] **Helpers**: Extension methods para tipos nativos (`String`, `Integer`, `TObject`).
+
+### 3. Test Runner & Coverage (Separated Process)
+- [ ] **Runner Service**: Executável separado para rodar testes (evita crash da IDE).
+- [ ] **IPC Protocol**: Comunicação JSON/WebSocket entre Runner e IDE Plugin.
+- [ ] **AST Instrumentation Coverage**: Code Coverage preciso via injeção de contadores na AST (suporte real a Generics e Anonymous Methods).

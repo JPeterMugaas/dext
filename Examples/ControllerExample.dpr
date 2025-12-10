@@ -4,7 +4,7 @@
 
 uses
   FastMM5,
-  Windows,
+  WinApi.Windows,
   System.SysUtils,
   System.Rtti,
   Dext in '..\Sources\Core\Dext.pas',

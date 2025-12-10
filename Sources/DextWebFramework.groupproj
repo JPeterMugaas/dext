@@ -45,22 +45,22 @@
         <Projects Include="..\Examples\RealWorld\DextStore.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\Examples\ControllerExample.dproj">
-            <Dependencies/>
-        </Projects>
         <Projects Include="Tests\Dext.Entity.Tests.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="..\Examples\EntityDemo\SimpleTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\Examples\ControllerExample.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="..\Examples\EntityDemo\EntityDemo.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="Core\Dext.Core.dproj">
-            <Dependencies/>
-        </Projects>
-        <Projects Include="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -197,15 +197,6 @@
     <Target Name="DextStore:Make">
         <MSBuild Projects="..\Examples\RealWorld\DextStore.dproj" Targets="Make"/>
     </Target>
-    <Target Name="ControllerExample">
-        <MSBuild Projects="..\Examples\ControllerExample.dproj"/>
-    </Target>
-    <Target Name="ControllerExample:Clean">
-        <MSBuild Projects="..\Examples\ControllerExample.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="ControllerExample:Make">
-        <MSBuild Projects="..\Examples\ControllerExample.dproj" Targets="Make"/>
-    </Target>
     <Target Name="Dext_Entity_Tests">
         <MSBuild Projects="Tests\Dext.Entity.Tests.dproj"/>
     </Target>
@@ -223,6 +214,24 @@
     </Target>
     <Target Name="SimpleTest:Make">
         <MSBuild Projects="..\Examples\EntityDemo\SimpleTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WebFrameworkTests">
+        <MSBuild Projects="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj"/>
+    </Target>
+    <Target Name="WebFrameworkTests:Clean">
+        <MSBuild Projects="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WebFrameworkTests:Make">
+        <MSBuild Projects="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ControllerExample">
+        <MSBuild Projects="..\Examples\ControllerExample.dproj"/>
+    </Target>
+    <Target Name="ControllerExample:Clean">
+        <MSBuild Projects="..\Examples\ControllerExample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ControllerExample:Make">
+        <MSBuild Projects="..\Examples\ControllerExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="EntityDemo">
         <MSBuild Projects="..\Examples\EntityDemo\EntityDemo.dproj"/>
@@ -242,23 +251,14 @@
     <Target Name="Dext_Core:Make">
         <MSBuild Projects="Core\Dext.Core.dproj" Targets="Make"/>
     </Target>
-    <Target Name="WebFrameworkTests">
-        <MSBuild Projects="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj"/>
-    </Target>
-    <Target Name="WebFrameworkTests:Clean">
-        <MSBuild Projects="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="WebFrameworkTests:Make">
-        <MSBuild Projects="..\Examples\WebFrameworkTests\WebFrameworkTests.dproj" Targets="Make"/>
-    </Target>
     <Target Name="Build">
-        <CallTarget Targets="Dext_AppBuilderTest;Dext_ServerTest_Cors;Dext_ServerTest;Dext_DITest;Dext_MinimalAPITest;TestConfig;CachingDemo;TaskFlowAPI;RateLimitDemo;JwtAuthDemo;SwaggerExample;MinimalAPIExample;TestDbSet;DextStore;ControllerExample;Dext_Entity_Tests;SimpleTest;EntityDemo;Dext_Core;WebFrameworkTests"/>
+        <CallTarget Targets="Dext_AppBuilderTest;Dext_ServerTest_Cors;Dext_ServerTest;Dext_DITest;Dext_MinimalAPITest;TestConfig;CachingDemo;TaskFlowAPI;RateLimitDemo;JwtAuthDemo;SwaggerExample;MinimalAPIExample;TestDbSet;DextStore;Dext_Entity_Tests;SimpleTest;WebFrameworkTests;ControllerExample;EntityDemo;Dext_Core"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Dext_AppBuilderTest:Clean;Dext_ServerTest_Cors:Clean;Dext_ServerTest:Clean;Dext_DITest:Clean;Dext_MinimalAPITest:Clean;TestConfig:Clean;CachingDemo:Clean;TaskFlowAPI:Clean;RateLimitDemo:Clean;JwtAuthDemo:Clean;SwaggerExample:Clean;MinimalAPIExample:Clean;TestDbSet:Clean;DextStore:Clean;ControllerExample:Clean;Dext_Entity_Tests:Clean;SimpleTest:Clean;EntityDemo:Clean;Dext_Core:Clean;WebFrameworkTests:Clean"/>
+        <CallTarget Targets="Dext_AppBuilderTest:Clean;Dext_ServerTest_Cors:Clean;Dext_ServerTest:Clean;Dext_DITest:Clean;Dext_MinimalAPITest:Clean;TestConfig:Clean;CachingDemo:Clean;TaskFlowAPI:Clean;RateLimitDemo:Clean;JwtAuthDemo:Clean;SwaggerExample:Clean;MinimalAPIExample:Clean;TestDbSet:Clean;DextStore:Clean;Dext_Entity_Tests:Clean;SimpleTest:Clean;WebFrameworkTests:Clean;ControllerExample:Clean;EntityDemo:Clean;Dext_Core:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Dext_AppBuilderTest:Make;Dext_ServerTest_Cors:Make;Dext_ServerTest:Make;Dext_DITest:Make;Dext_MinimalAPITest:Make;TestConfig:Make;CachingDemo:Make;TaskFlowAPI:Make;RateLimitDemo:Make;JwtAuthDemo:Make;SwaggerExample:Make;MinimalAPIExample:Make;TestDbSet:Make;DextStore:Make;ControllerExample:Make;Dext_Entity_Tests:Make;SimpleTest:Make;EntityDemo:Make;Dext_Core:Make;WebFrameworkTests:Make"/>
+        <CallTarget Targets="Dext_AppBuilderTest:Make;Dext_ServerTest_Cors:Make;Dext_ServerTest:Make;Dext_DITest:Make;Dext_MinimalAPITest:Make;TestConfig:Make;CachingDemo:Make;TaskFlowAPI:Make;RateLimitDemo:Make;JwtAuthDemo:Make;SwaggerExample:Make;MinimalAPIExample:Make;TestDbSet:Make;DextStore:Make;Dext_Entity_Tests:Make;SimpleTest:Make;WebFrameworkTests:Make;ControllerExample:Make;EntityDemo:Make;Dext_Core:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

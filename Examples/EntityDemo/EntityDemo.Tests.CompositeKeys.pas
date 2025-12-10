@@ -1,4 +1,4 @@
-unit EntityDemo.Tests.CompositeKeys;
+﻿unit EntityDemo.Tests.CompositeKeys;
 
 interface
 
@@ -37,28 +37,28 @@ begin
 
   // Find using Composite Key
   var FoundItem := FContext.Entities<TOrderItem>.Find([100, 50]);
-  
+
   AssertTrue(FoundItem <> nil, 'Found OrderItem by Composite Key.', 'Failed to find OrderItem.');
-  
+
   if FoundItem <> nil then
   begin
     AssertTrue(FoundItem.Quantity = 2, 'Quantity is correct.', 'Quantity is incorrect.');
-    
+
     // Update
     FoundItem.Quantity := 5;
     FContext.Entities<TOrderItem>.Update(FoundItem);
     FContext.SaveChanges;
     LogSuccess('OrderItem updated.');
-    
+
     // Remove
     FContext.Entities<TOrderItem>.Remove(FoundItem);
     FContext.SaveChanges;
-    
+
     // Verify Remove
     var DeletedItem := FContext.Entities<TOrderItem>.Find(VarArrayOf([100, 50]));
     AssertTrue(DeletedItem = nil, 'Composite Key Remove Verified.', 'Composite Key Remove Failed.');
   end;
-  
+
   Log('');
 end;
 

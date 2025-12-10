@@ -194,7 +194,7 @@ type
     constructor Create;
     destructor Destroy; override;
     
-    procedure ApplyConfiguration<T: class>(const AConfig: IEntityTypeConfiguration<T>);
+    procedure ApplyConfiguration<T: class>(AConfig: IEntityTypeConfiguration<T>);
     function Entity<T: class>: TEntityBuilder<T>;
     
     function GetMap(AType: PTypeInfo): TEntityMap;
@@ -453,7 +453,7 @@ begin
   inherited;
 end;
 
-procedure TModelBuilder.ApplyConfiguration<T>(const AConfig: IEntityTypeConfiguration<T>);
+procedure TModelBuilder.ApplyConfiguration<T>(AConfig: IEntityTypeConfiguration<T>);
 var
   Map: TEntityMap;
   Builder: IEntityTypeBuilder<T>;

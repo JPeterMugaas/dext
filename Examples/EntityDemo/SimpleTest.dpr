@@ -3,7 +3,7 @@ program SimpleTest;
 {$APPTYPE CONSOLE}
 
 uses
-  //FastMM5,
+  FastMM5,
   System.SysUtils,
   FireDAC.Comp.Client,
   FireDAC.Stan.Def,
