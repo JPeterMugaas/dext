@@ -21,6 +21,9 @@
 {                                                                           }
 {  Author:  Cesar Romero                                                    }
 {  Created: 2025-12-08                                                      }
+{  Updated: 2025-12-10 - Refactored ownership model for explicit memory     }
+{                        management. Interface-based services are managed   }
+{                        by ARC, class-based services by explicit Free.     }
 {                                                                           }
 {***************************************************************************}
 unit Dext.DI.Core;
@@ -32,12 +35,23 @@ uses
   Dext.DI.Interfaces;
 
 type
+  /// <summary>
+  ///   Describes a service registration in the DI container.
+  ///   Contains metadata about how to create and manage the service instance.
+  /// </summary>
   TServiceDescriptor = class
   public
     ServiceType: TServiceType;
     ImplementationClass: TClass;
     Lifetime: TServiceLifetime;
     Factory: TFunc<IServiceProvider, TObject>;
+    /// <summary>
+    ///   Indicates if this service was registered as an interface type.
+    ///   Interface services are managed by ARC (TInterfacedObject).
+    ///   Class services are managed explicitly by the DI container (Free).
+    /// </summary>
+    IsInterfaceService: Boolean;
+    
     constructor Create(const AServiceType: TServiceType;
       AImplementationClass: TClass; ALifetime: TServiceLifetime;
       AFactory: TFunc<IServiceProvider, TObject>);
@@ -47,18 +61,28 @@ type
 
   TDextServiceScope = class;
 
+  /// <summary>
+  ///   The service provider (DI container) that resolves service instances.
+  ///   Manages two separate storage mechanisms:
+  ///   - FSingletons/FScopedInstances: For class-based services (explicit Free)
+  ///   - FSingletonInterfaces/FScopedInterfaces: For interface-based services (ARC)
+  /// </summary>
   TDextServiceProvider = class(TInterfacedObject, IServiceProvider)
   private
     FDescriptors: TObjectList<TServiceDescriptor>;
+    
+    // Class-based service storage (DI owns and frees these)
     FSingletons: TDictionary<string, TObject>;
+    FScopedInstances: TDictionary<string, TObject>;
+    
+    // Interface-based service storage (ARC manages these)
     FSingletonInterfaces: TDictionary<string, IInterface>;
-    FARCManagedKeys: TList<string>; // ✅ Track which keys are managed by ARC
+    FScopedInterfaces: TDictionary<string, IInterface>;
+    
     FIsRootProvider: Boolean;
     FParentProvider: IServiceProvider;
-    FScopedInstances: TDictionary<string, TObject>;
-    FScopedInterfaces: TDictionary<string, IInterface>;
     FLock: TCriticalSection;
-    FOwnsDescriptors: Boolean; // ✅ New Field
+    FOwnsDescriptors: Boolean;
 
     function CreateInstance(ADescriptor: TServiceDescriptor): TObject;
     function FindDescriptor(const AServiceType: TServiceType): TServiceDescriptor;
@@ -121,19 +145,20 @@ begin
   ImplementationClass := AImplementationClass;
   Lifetime := ALifetime;
   Factory := AFactory;
+  // Determine ownership model based on how the service was registered
+  IsInterfaceService := AServiceType.IsInterface;
 end;
-
 
 destructor TServiceDescriptor.Destroy;
 begin
-  // WriteLn('🗑️ TServiceDescriptor.Destroy'); // Uncomment if too noisy
-  Factory := nil; // Explicitly release the interface reference
+  Factory := nil; // Explicitly release the closure reference
   inherited;
 end;
 
 function TServiceDescriptor.Clone: TServiceDescriptor;
 begin
   Result := TServiceDescriptor.Create(ServiceType, ImplementationClass, Lifetime, Factory);
+  Result.IsInterfaceService := IsInterfaceService;
 end;
 
 { TDextServiceCollection }
@@ -153,34 +178,42 @@ end;
 function TDextServiceCollection.AddSingleton(const AServiceType: TServiceType;
   const AImplementationClass: TClass;
   const AFactory: TFunc<IServiceProvider, TObject>): IServiceCollection;
+var
+  Descriptor: TServiceDescriptor;
 begin
-  FDescriptors.Add(TServiceDescriptor.Create(
-    AServiceType, AImplementationClass, TServiceLifetime.Singleton, AFactory));
+  Descriptor := TServiceDescriptor.Create(
+    AServiceType, AImplementationClass, TServiceLifetime.Singleton, AFactory);
+  FDescriptors.Add(Descriptor);
   Result := Self;
 end;
 
 function TDextServiceCollection.AddTransient(const AServiceType: TServiceType;
   const AImplementationClass: TClass;
   const AFactory: TFunc<IServiceProvider, TObject>): IServiceCollection;
+var
+  Descriptor: TServiceDescriptor;
 begin
-  FDescriptors.Add(TServiceDescriptor.Create(
-    AServiceType, AImplementationClass, TServiceLifetime.Transient, AFactory));
+  Descriptor := TServiceDescriptor.Create(
+    AServiceType, AImplementationClass, TServiceLifetime.Transient, AFactory);
+  FDescriptors.Add(Descriptor);
   Result := Self;
 end;
 
 function TDextServiceCollection.AddScoped(const AServiceType: TServiceType;
   const AImplementationClass: TClass;
   const AFactory: TFunc<IServiceProvider, TObject>): IServiceCollection;
+var
+  Descriptor: TServiceDescriptor;
 begin
-  FDescriptors.Add(TServiceDescriptor.Create(
-    AServiceType, AImplementationClass, TServiceLifetime.Scoped, AFactory));
+  Descriptor := TServiceDescriptor.Create(
+    AServiceType, AImplementationClass, TServiceLifetime.Scoped, AFactory);
+  FDescriptors.Add(Descriptor);
   Result := Self;
 end;
 
 function TDextServiceCollection.BuildServiceProvider: IServiceProvider;
 begin
   Result := TDextServiceProvider.Create(FDescriptors);
-  // Collection retains ownership of its own descriptors
 end;
 
 { TDextServiceProvider }
@@ -193,101 +226,103 @@ begin
   // Create our own list container, but share the items (owned by Collection)
   FDescriptors := TObjectList<TServiceDescriptor>.Create(False);
   for Desc in ADescriptors do
-  begin
     FDescriptors.Add(Desc);
-  end;
-  FOwnsDescriptors := True; // We own the list container, but not the items
+  FOwnsDescriptors := True;
 
+  // Class-based storage (DI owns these objects)
   FSingletons := TDictionary<string, TObject>.Create;
-  FSingletonInterfaces  := TDictionary<string, IInterface>.Create;
-  FARCManagedKeys := TList<string>.Create; // ✅ Track ARC-managed singletons
   FScopedInstances := TDictionary<string, TObject>.Create;
+  
+  // Interface-based storage (ARC owns these objects)
+  FSingletonInterfaces := TDictionary<string, IInterface>.Create;
   FScopedInterfaces := TDictionary<string, IInterface>.Create;
+  
   FLock := TCriticalSection.Create;
   FIsRootProvider := True;
   FParentProvider := nil;
-
-  // Self-registration is handled dynamically to avoid circular references (ARC)
-  // FSingletonInterfaces.Add(TServiceType.FromInterface(IServiceProvider).ToString, Self);
 end;
 
-constructor TDextServiceProvider.CreateScoped(AParent: IServiceProvider; const ADescriptors: TObjectList<TServiceDescriptor>);
+constructor TDextServiceProvider.CreateScoped(AParent: IServiceProvider; 
+  const ADescriptors: TObjectList<TServiceDescriptor>);
 var
   Desc: TServiceDescriptor;
 begin
   inherited Create;
   FDescriptors := TObjectList<TServiceDescriptor>.Create(False);
   for Desc in ADescriptors do
-  begin
     FDescriptors.Add(Desc);
-  end;
   FOwnsDescriptors := True;
 
-  FSingletons := nil; // Scoped providers don't create singletons
+  // Scoped providers don't manage singletons - they delegate to parent
+  FSingletons := nil;
   FSingletonInterfaces := nil;
+  
+  // But they do manage scoped instances
   FScopedInstances := TDictionary<string, TObject>.Create;
   FScopedInterfaces := TDictionary<string, IInterface>.Create;
+  
   FLock := TCriticalSection.Create;
   FIsRootProvider := False;
   FParentProvider := AParent;
-  
-  // Self-registration is handled dynamically to avoid circular references (ARC)
-  // FScopedInterfaces.Add(TServiceType.FromInterface(IServiceProvider).ToString, Self);
 end;
 
 destructor TDextServiceProvider.Destroy;
 var
   SingletonObj: TObject;
+  ScopedObj: TObject;
   Key: string;
 begin
-  // Liberar instâncias singleton (apenas no root provider)
+  // === SINGLETON CLEANUP (only for root provider) ===
   if FIsRootProvider then
   begin
-    // First, free non-ARC objects in FSingletons
-    // TInterfacedObject instances will be freed by ARC when we clear FSingletonInterfaces
+    // 1. Free class-based singletons (non-TInterfacedObject)
+    //    TInterfacedObject instances will be freed by ARC when FSingletonInterfaces is cleared
     if Assigned(FSingletons) then
     begin
       for Key in FSingletons.Keys do
       begin
         if FSingletons.TryGetValue(Key, SingletonObj) then
         begin
-          // Skip TInterfacedObject - ARC will free them via FSingletonInterfaces
+          // Only free if NOT a TInterfacedObject (ARC will handle those)
           if not (SingletonObj is TInterfacedObject) then
             SingletonObj.Free;
         end;
       end;
-      FSingletons.Clear;
       FSingletons.Free;
     end;
     
-    // Now clear interfaces - ARC will free TInterfacedObject instances
+    // 2. Clear interface-based singletons (ARC manages the objects)
     if Assigned(FSingletonInterfaces) then
     begin
-      FSingletonInterfaces.Clear;
+      FSingletonInterfaces.Clear; // ARC will free TInterfacedObject instances
       FSingletonInterfaces.Free;
     end;
-    
-    // Free the tracking list
-    if Assigned(FARCManagedKeys) then
-      FARCManagedKeys.Free;
   end;
 
-  // Liberar instâncias scoped
+  // === SCOPED CLEANUP ===
+  // 1. Free class-based scoped instances (non-TInterfacedObject only)
+  if Assigned(FScopedInstances) then
+  begin
+    for Key in FScopedInstances.Keys do
+    begin
+      if FScopedInstances.TryGetValue(Key, ScopedObj) then
+      begin
+        if not (ScopedObj is TInterfacedObject) then
+          ScopedObj.Free;
+      end;
+    end;
+    FScopedInstances.Free;
+  end;
+  
+  // 2. Clear interface-based scoped instances (ARC manages)
   if Assigned(FScopedInterfaces) then
   begin
     FScopedInterfaces.Clear;
     FScopedInterfaces.Free;
   end;
-  
-  if Assigned(FScopedInstances) then
-  begin
-    FScopedInstances.Clear;
-    FScopedInstances.Free;
-  end;
 
   FLock.Free;
   
-  // ✅ Only Free Descriptors if we own them
   if FOwnsDescriptors and Assigned(FDescriptors) then
     FDescriptors.Free;
 
@@ -317,13 +352,9 @@ end;
 function TDextServiceProvider.CreateInstance(ADescriptor: TServiceDescriptor): TObject;
 begin
   if Assigned(ADescriptor.Factory) then
-  begin
-    Result := ADescriptor.Factory(Self);
-  end
+    Result := ADescriptor.Factory(Self)
   else
-  begin
     Result := TActivator.CreateInstance(Self, ADescriptor.ImplementationClass);
-  end;
 end;
 
 function TDextServiceProvider.GetService(const AServiceType: TServiceType): TObject;
@@ -334,9 +365,7 @@ var
 begin
   Descriptor := FindDescriptor(AServiceType);
   if not Assigned(Descriptor) then
-  begin
     Exit(nil);
-  end;
 
   Key := AServiceType.ToString;
 
@@ -345,7 +374,6 @@ begin
     case Descriptor.Lifetime of
       TServiceLifetime.Singleton:
       begin
-        // Singletons are only created in the root provider
         if FIsRootProvider then
         begin
           if not FSingletons.TryGetValue(Key, Instance) then
@@ -356,10 +384,7 @@ begin
           Result := Instance;
         end
         else
-        begin
-          // Delegate to parent
           Result := FParentProvider.GetService(AServiceType);
-        end;
       end;
 
       TServiceLifetime.Scoped:
@@ -373,9 +398,7 @@ begin
       end;
 
       TServiceLifetime.Transient:
-      begin
         Result := CreateInstance(Descriptor);
-      end;
     else
       Result := nil;
     end;
@@ -408,26 +431,22 @@ begin
       begin
         if FIsRootProvider then
         begin
-            if not FSingletonInterfaces.TryGetValue(Key, Intf) then
+          if not FSingletonInterfaces.TryGetValue(Key, Intf) then
+          begin
+            Obj := CreateInstance(Descriptor);
+            if not Supports(Obj, AServiceType.AsInterface, Intf) then
             begin
-              Obj := CreateInstance(Descriptor);
-              if not Supports(Obj, AServiceType.AsInterface, Intf) then
-              begin
-                Obj.Free;
-                raise EDextDIException.CreateFmt('Service %s does not implement interface %s',
-                  [Obj.ClassName, GUIDToString(AServiceType.AsInterface)]);
-              end;
-              FSingletonInterfaces.Add(Key, Intf);
-              // ✅ Mark this key as ARC-managed
-              if not FARCManagedKeys.Contains(Key) then
-                FARCManagedKeys.Add(Key);
+              Obj.Free;
+              raise EDextDIException.CreateFmt('Service %s does not implement interface %s',
+                [Obj.ClassName, GUIDToString(AServiceType.AsInterface)]);
             end;
-            Result := Intf;
+            FSingletonInterfaces.Add(Key, Intf);
+            // Note: The object is now owned by ARC via the interface reference
+          end;
+          Result := Intf;
         end
         else
-        begin
           Result := FParentProvider.GetServiceAsInterface(AServiceType);
-        end;
       end;
 
       TServiceLifetime.Scoped:
@@ -486,4 +505,3 @@ begin
 end;
 
 end.
-
