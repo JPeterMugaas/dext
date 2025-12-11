@@ -270,6 +270,7 @@ Follow the project development:
 - [ORM Roadmap](Docs/ORM_ROADMAP.md)
 - [Web Framework Roadmap](Docs/WEB_ROADMAP.md)
 - [Infra & IDE Roadmap](Docs/INFRA_ROADMAP.md)
+- [Architecture & Performance](Docs/ARCHITECTURE_PERFORMANCE.md)
 
 ---
 

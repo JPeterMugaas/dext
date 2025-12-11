@@ -267,6 +267,7 @@ Acompanhe o desenvolvimento do projeto:
 - [ORM Roadmap](Docs/ORM_ROADMAP.md)
 - [Web Framework Roadmap](Docs/WEB_ROADMAP.md)
 - [Infra & IDE Roadmap](Docs/INFRA_ROADMAP.md)
+- [Arquitetura & Performance](Docs/ARCHITECTURE_PERFORMANCE.pt-br.md)
 
 ---
 
