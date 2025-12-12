@@ -168,14 +168,25 @@ type
     class operator Implicit(const A: TDextAppBuilder): IApplicationBuilder;
   end;
 
+  // Forward declaration
+  IWebApplication = interface;
+
+  IStartup = interface
+    ['{8A95A642-1246-4552-BD90-0824B7517E08}']
+    procedure ConfigureServices(const Services: TDextServices; const Configuration: IConfiguration);
+    procedure Configure(const App: IWebApplication);
+  end;
+
   IWebApplication = interface
     ['{B6C96B49-0292-42A6-A767-C7EAF52F71FC}']
     function GetServices: TDextServices;
     function GetBuilder: TDextAppBuilder;
     function UseMiddleware(Middleware: TClass): IWebApplication;
+    function UseStartup(Startup: IStartup): IWebApplication; // ✅ Non-generic
     function MapControllers: IWebApplication;
     function GetApplicationBuilder: IApplicationBuilder;
     function GetConfiguration: IConfiguration;
+    function BuildServices: IServiceProvider; // ✅ Automation
     procedure Run(Port: Integer = 8080);
 
     property Services: TDextServices read GetServices;

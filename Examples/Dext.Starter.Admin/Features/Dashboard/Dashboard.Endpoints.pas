@@ -14,12 +14,15 @@ uses
 type
   TDashboardEndpoints = class
   public
-    class procedure Map(App: IApplicationBuilder);
+    class procedure Map(App: TDextAppBuilder);
   private
     class function CheckAuth(Context: IHttpContext): Boolean;
   end;
 
 implementation
+
+uses
+  AppResponseConsts;
 
 function GetFilePath(const RelativePath: string): string;
 begin
@@ -39,34 +42,31 @@ begin
     Context.Response.StatusCode := 401;
 end;
 
-class procedure TDashboardEndpoints.Map(App: IApplicationBuilder);
+class procedure TDashboardEndpoints.Map(App: TDextAppBuilder);
 begin
-  // Root path - serve main shell
-  // Allow anonymous access so index.html can load and handle auth logic client-side
+  // Root path
   App.MapGet('/',
     procedure(Context: IHttpContext)
     begin
+      // TODO: Consider separating logic for index.html loading
       var Res: IResult := TContentResult.Create(TFile.ReadAllText(GetFilePath('wwwroot\index.html')), 'text/html');
       Res.Execute(Context);
     end);
 
-  // Dashboard fragment - Protected
+  // Dashboard fragment
   App.MapGet('/dashboard',
     procedure(Context: IHttpContext)
     begin
       if not CheckAuth(Context) then Exit;
-      
       var Res: IResult := TContentResult.Create(TFile.ReadAllText(GetFilePath('wwwroot\views\dashboard_fragment.html')), 'text/html');
       Res.Execute(Context);
     end);
 
-  // Dashboard stats - returns HTML cards - Protected
-  App.MapGet('/dashboard/stats',
-    procedure(Context: IHttpContext)
+  // Dashboard stats - Injected TAppDbContext
+  App.MapGet<TAppDbContext, IHttpContext>('/dashboard/stats',
+    procedure(Db: TAppDbContext; Context: IHttpContext)
     begin
       if not CheckAuth(Context) then Exit;
-      
-      var Db := TServiceProviderExtensions.GetRequiredServiceObject<TAppDbContext>(Context.Services);
       
       var TotalCustomers := Db.Entities<TCustomer>.List.Count; 
       
@@ -75,36 +75,19 @@ begin
       for var O in Orders do
         TotalSales := TotalSales + O.Total;
         
-      var Html := Format(
-        '<div class="bg-white rounded-lg shadow p-6">' +
-        '  <h3 class="text-sm font-medium text-gray-500">Total Customers</h3>' +
-        '  <p class="text-2xl font-bold text-gray-900 mt-2">%d</p>' +
-        '</div>' +
-        '<div class="bg-white rounded-lg shadow p-6">' +
-        '  <h3 class="text-sm font-medium text-gray-500">Total Revenue</h3>' +
-        '  <p class="text-2xl font-bold text-gray-900 mt-2">%m</p>' +
-        '</div>', 
-        [TotalCustomers, TotalSales]);
+      var Html := Format(HTML_DASHBOARD_STATS, [TotalCustomers, TotalSales]);
 
       var Res: IResult := TContentResult.Create(Html, 'text/html');
       Res.Execute(Context);
     end);
 
-  // Dashboard chart data - returns JSON - Protected
+  // Dashboard chart data
   App.MapGet('/dashboard/chart',
     procedure(Context: IHttpContext)
     begin
       if not CheckAuth(Context) then Exit;
-      
-       var Res := Results.Json('{' +
-       '"labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],' +
-       '"datasets": [{' +
-         '"label": "Sales",' +
-         '"data": [12, 19, 3, 5, 2, 3],' +
-         '"borderWidth": 1' +
-       '}]' +
-     '}');
-     Res.Execute(Context);
+      var Res := Results.Json(JSON_DASHBOARD_CHART);
+      Res.Execute(Context);
     end);
 end;
 

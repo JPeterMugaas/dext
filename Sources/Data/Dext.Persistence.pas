@@ -215,6 +215,18 @@ type
   ///   Persistence Setup Helper
   /// </summary>
   TDbContextClass = class of TDbContext;
+  
+  /// <summary>
+  ///   Helper for TDextServices to add Persistence features.
+  /// </summary>
+  TDextPersistenceServicesHelper = record helper for TDextServices
+  public
+    /// <summary>
+    ///   Registers a DbContext with the dependency injection container.
+    /// </summary>
+    function AddDbContext<T: TDbContext>(Config: TProc<TDbContextOptions>): TDextServices;
+  end;
+
   TPersistence = class
   public
     /// <summary>
@@ -236,6 +248,15 @@ uses
   Dext.Specifications.OrderBy,
   Dext.DI.Core; // Added for IServiceProvider, TServiceType
 
+{ TDextPersistenceServicesHelper }
+
+function TDextPersistenceServicesHelper.AddDbContext<T>(Config: TProc<TDbContextOptions>): TDextServices;
+begin
+  TPersistence.AddDbContext<T>(Self.Unwrap, Config);
+  Result := Self;
+end;
+
+{ TPersistence }
 
 class procedure TPersistence.AddDbContext<T>(Services: IServiceCollection; Config: TProc<TDbContextOptions>);
 begin

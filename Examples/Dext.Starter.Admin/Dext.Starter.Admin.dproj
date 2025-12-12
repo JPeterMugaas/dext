@@ -139,7 +139,6 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="AppStartup.pas"/>
-        <DCCReference Include="Features\Auth\Auth.Service.pas"/>
         <DCCReference Include="Features\Auth\Auth.Endpoints.pas"/>
         <DCCReference Include="Features\Dashboard\Dashboard.Endpoints.pas"/>
         <DCCReference Include="Features\Customers\Customer.Endpoints.pas"/>
@@ -149,6 +148,10 @@
         <DCCReference Include="Domain\Entities\Order.pas"/>
         <DCCReference Include="Domain\DbContext.pas"/>
         <DCCReference Include="Domain\DbSeeder.pas"/>
+        <DCCReference Include="Features\Auth\Auth.Service.pas"/>
+        <DCCReference Include="Features\Customers\Customer.Service.pas"/>
+        <DCCReference Include="Features\Dashboard\Dashboard.Service.pas"/>
+        <DCCReference Include="Features\Settings\Settings.Service.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

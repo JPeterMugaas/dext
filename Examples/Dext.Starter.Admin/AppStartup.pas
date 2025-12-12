@@ -12,7 +12,10 @@ uses
   Auth.Endpoints,
   Dashboard.Endpoints,
   Customer.Endpoints,
+  Customer.Service,
   Settings.Endpoints,
+  Settings.Service,
+  Dashboard.Service,
   // Domain
   User,
   Customer,
@@ -21,10 +24,13 @@ uses
   DbSeeder;
 
 type
-  TAppStartup = class
+  TAppStartup = class(TInterfacedObject, IStartup)
   public
-    class procedure ConfigureServices(const Services: IServiceCollection; const Configuration: IConfiguration);
-    class procedure Configure(const App: IWebApplication);
+    // IStartup Implementation - Instance methods
+    procedure ConfigureServices(const Services: TDextServices; const Configuration: IConfiguration);
+    procedure Configure(const App: IWebApplication);
+    
+    // Static Helper for Seeding (kept static as it's optional)
     class procedure RunSeeder(const App: IWebApplication);
   end;
 
@@ -32,50 +38,44 @@ implementation
 
 { TAppStartup }
 
-class procedure TAppStartup.ConfigureServices(const Services: IServiceCollection; const Configuration: IConfiguration);
+{ TAppStartup }
+
+procedure TAppStartup.ConfigureServices(const Services: TDextServices; const Configuration: IConfiguration);
 begin
-  // 1. Auth Service
-  TServiceCollectionExtensions.AddScoped<IAuthService, TAuthService>(Services);
+  // 1. Auth Service (Generic)
+  Services.AddScoped<IAuthService, TAuthService>;
 
   // 2. Database (SQLite) - Using new AddDbContext helper with Pooling support
-  TPersistence.AddDbContext<TAppDbContext>(Services,
+  Services.AddDbContext<TAppDbContext>(
     procedure(Options: TDbContextOptions)
     begin
-      // Use Helper
       Options.UseSQLite('dext_admin.db');
-      
-      // Enable Pooling (Safe for real servers, overkill for SQLite file but good practice)
-      // TODO : Configure ConnectionDefs
-      // AUTH: Exception in middleware: EFDException: [FireDAC][Comp][Clnt]-507.
-      // Connection [$04AC7FC0: TFDConnection] cannot be pooled.
-      // Possible reason: connection definition is not in the FDManager.ConnectionDefs list or
-      // TFDConnection.Params has additional parameters
       Options.Pooling := False;
       Options.PoolMax := 20;
     end);
 
-  // 3. Register DbSeeder (Manual)
-  Services.AddTransient(
-    TServiceType.FromClass(TDbSeeder),
-    TDbSeeder,
-    function(Provider: Dext.DI.Interfaces.IServiceProvider): TObject
+  // 2.1 Feature Services
+  Services.AddScoped<ICustomerService, TCustomerService>;
+  Services.AddScoped<IDashboardService, TDashboardService>;
+  Services.AddScoped<ISettingsService, TSettingsService>;
+
+  // 3. Register DbSeeder (Manual -> Implicit Type)
+  Services.AddTransient(TDbSeeder, TDbSeeder,
+    function(Provider: IServiceProvider): TObject
     begin
        Result := TDbSeeder.Create(Provider);
     end);
 
-  // 4. Register JWT Token Handler
-  Services.AddSingleton(
-    TServiceType.FromInterface(TypeInfo(IJwtTokenHandler)),
-    TJwtTokenHandler,
-    function(Provider: Dext.DI.Interfaces.IServiceProvider): TObject
+  // 4. Register JWT Token Handler (Interface type -> Implicit Type)
+  Services.AddSingleton<IJwtTokenHandler, TJwtTokenHandler>(
+    function(Provider: IServiceProvider): TObject
     begin
       // TODO: Move secret key to configuration
       Result := TJwtTokenHandler.Create(
-        'dext-admin-secret-key-change-in-production-2024',  // Secret
-        'DextAdmin',                                          // Issuer
-        'DextAdminUI',                                        // Audience
-        60                                                    // Expiration (minutes)
-      );
+        'dext-admin-secret-key-change-in-production-2024',
+        'DextAdmin',
+        'DextAdminUI',
+        60);
     end);
 end;
 
@@ -104,12 +104,12 @@ begin
     Writeln('[WARN] TDbSeeder service not found.');
 end;
 
-class procedure TAppStartup.Configure(const App: IWebApplication);
+procedure TAppStartup.Configure(const App: IWebApplication);
 begin
-  var WebApp: IApplicationBuilder := App.GetApplicationBuilder;
+  var WebApp := App.GetBuilder;
 
   // 1. Serve Static Files (from wwwroot)
-  TApplicationBuilderStaticFilesExtensions.UseStaticFiles(WebApp);
+  WebApp.UseStaticFiles;
 
   // 2. JWT Authentication Middleware
   TApplicationBuilderJwtExtensions.UseJwtAuthentication(
@@ -118,7 +118,8 @@ begin
   );
 
   // 3. Generate Swagger Documentation
-  TSwaggerExtensions.UseSwagger(WebApp);
+  // TSwaggerExtensions.UseSwagger(WebApp); // Not fluent yet
+  TSwaggerExtensions.UseSwagger(WebApp.Unwrap);
 
   // 4. Map Features
   TAuthEndpoints.Map(WebApp);

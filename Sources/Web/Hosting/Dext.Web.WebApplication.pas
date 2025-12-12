@@ -50,7 +50,9 @@ type
     function GetConfiguration: IConfiguration;
     function GetServices: TDextServices;
     function GetBuilder: TDextAppBuilder;
+    function BuildServices: IServiceProvider; // ✅
     function UseMiddleware(Middleware: TClass): IWebApplication;
+    function UseStartup(Startup: IStartup): IWebApplication; // ✅ Non-generic
     function MapControllers: IWebApplication;
     procedure Run(Port: Integer = 8080);
   end;
@@ -148,6 +150,15 @@ begin
   Result := TDextAppBuilder.Create(FAppBuilder);
 end;
 
+function TDextApplication.BuildServices: IServiceProvider;
+begin
+  // ✅ REBUILD ServiceProvider to include all services registered after Create()
+  FServiceProvider := nil; // Release old provider
+  FServiceProvider := FServices.BuildServiceProvider;
+  FAppBuilder.SetServiceProvider(FServiceProvider);
+  Result := FServiceProvider;
+end;
+
 function TDextApplication.MapControllers: IWebApplication;
 var
   RouteCount: Integer;
@@ -219,6 +230,17 @@ begin
 function TDextApplication.UseMiddleware(Middleware: TClass): IWebApplication;
 begin
   FAppBuilder.UseMiddleware(Middleware);
+  Result := Self;
+end;
+
+function TDextApplication.UseStartup(Startup: IStartup): IWebApplication;
+begin
+  // 1. Configure Services
+  Startup.ConfigureServices(TDextServices.Create(FServices), FConfiguration);
+  
+  // 2. Configure Pipeline
+  Startup.Configure(Self);
+  
   Result := Self;
 end;
 

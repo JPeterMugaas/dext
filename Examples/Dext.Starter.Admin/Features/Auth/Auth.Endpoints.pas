@@ -19,10 +19,15 @@ type
 
   TAuthEndpoints = class
   public
-    class procedure Map(App: IApplicationBuilder);
+    class procedure Map(App: TDextAppBuilder);
   end;
 
 implementation
+
+uses
+  // Add Dext.Web.Fluent to make MapGet/MapPost available on TDextAppBuilder
+  Dext.Web.Interfaces, // For IHttpContext
+  Dext.Web.HandlerInvoker; // For safe measure if needed, though Fluent covers it
 
 function GetFilePath(const RelativePath: string): string;
 begin
@@ -32,7 +37,7 @@ end;
 
 { TAuthEndpoints }
 
-class procedure TAuthEndpoints.Map(App: IApplicationBuilder);
+class procedure TAuthEndpoints.Map(App: TDextAppBuilder);
 begin
   // MapGroup not available, using explicit paths
 
@@ -43,28 +48,22 @@ begin
       Res.Execute(Context);
     end);
 
-  App.MapPost('/auth/login',
-    procedure(Context: IHttpContext)
+  App.MapPost<IAuthService, IJwtTokenHandler, IHttpContext>('/auth/login',
+    procedure(AuthService: IAuthService; JwtHandler: IJwtTokenHandler; Context: IHttpContext)
     var
-      AuthService: IAuthService;
-      JwtHandler: IJwtTokenHandler;
       User: TUser;
       Claims: TArray<TClaim>;
       Token: string;
     begin
-      // For now, use hardcoded credentials (TODO: parse form data)
+      // For now, use hardcoded credentials (TODO: parse form data via TLoginRequest)
       // HTMX sends form-urlencoded by default
       var Username := 'admin';
       var Password := 'admin';
       
-      AuthService := TServiceProviderExtensions.GetRequiredService<IAuthService>(Context.Services);
       User := AuthService.ValidateUser(Username, Password);
       
       if User <> nil then
       begin
-        // Get JWT handler from DI
-        JwtHandler := TServiceProviderExtensions.GetRequiredService<IJwtTokenHandler>(Context.Services);
-        
         // Create claims
         Claims := TClaimsBuilder.Create
           .WithNameIdentifier(IntToStr(User.Id))

@@ -12,7 +12,7 @@ uses
 type
   TSettingsEndpoints = class
   public
-    class procedure Map(App: IApplicationBuilder);
+    class procedure Map(App: TDextAppBuilder);
   private
     class function GenerateSuccessNotification(const Message: string): string;
     class function GenerateErrorNotification(const Message: string): string;
@@ -21,6 +21,9 @@ type
   end;
 
 implementation
+
+uses
+  AppResponseConsts;
 
 function GetFilePath(const RelativePath: string): string;
 begin
@@ -42,25 +45,15 @@ end;
 
 class function TSettingsEndpoints.GenerateSuccessNotification(const Message: string): string;
 begin
-  Result := Format(
-    '<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">' +
-    '  <p class="font-bold">Success</p>' +
-    '  <p>%s</p>' +
-    '</div>',
-    [Message]);
+  Result := Format(HTML_NOTIFICATION_SUCCESS, [Message]);
 end;
 
 class function TSettingsEndpoints.GenerateErrorNotification(const Message: string): string;
 begin
-  Result := Format(
-    '<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">' +
-    '  <p class="font-bold">Error</p>' +
-    '  <p>%s</p>' +
-    '</div>',
-    [Message]);
+  Result := Format(HTML_NOTIFICATION_ERROR, [Message]);
 end;
 
-class procedure TSettingsEndpoints.Map(App: IApplicationBuilder);
+class procedure TSettingsEndpoints.Map(App: TDextAppBuilder);
 begin
   // GET /settings - Return settings page
   App.MapGet('/settings',
@@ -84,7 +77,9 @@ begin
     begin
       if not CheckAuth(Context) then Exit; // Auth Check
       
-      // Read body stream
+      // Read body stream logic... (Should rely on Form binding ideally, but keeping manual for now or checking if Dext does it)
+      // Dext 2.0 should handle form binding, but to be safe and consistent with previous code structure:
+      
       if Context.Request.Body <> nil then
       begin
         Context.Request.Body.Position := 0;
@@ -116,20 +111,14 @@ begin
         end;
       end;
       
-      // Here you would normally update the user in the database
-      // For now, we'll just acknowledge the update with the submitted name
-      
+      // Logic...
       Notification := GenerateSuccessNotification(Format('Profile updated for %s (%s)!', [Name, Email]));
       SettingsHtml := TFile.ReadAllText(GetFilePath('wwwroot\views\settings.html'));
       
-      // Update values in HTML to reflect changes (simple string replace for demo)
-      // In a real app with a template engine, this would be cleaner
       SettingsHtml := SettingsHtml.Replace('value="Admin User"', Format('value="%s"', [Name]));
       SettingsHtml := SettingsHtml.Replace('value="admin@dext.com"', Format('value="%s"', [Email]));
       
-      // Prepend notification to settings HTML
       var Html := Notification + SettingsHtml;
-      
       var Res: IResult := TContentResult.Create(Html, 'text/html');
       Res.Execute(Context);
     end);
@@ -145,7 +134,6 @@ begin
     begin
       if not CheckAuth(Context) then Exit; // Auth Check
       
-      // Read body stream
       if Context.Request.Body <> nil then
       begin
         Context.Request.Body.Position := 0;
@@ -179,26 +167,16 @@ begin
         end;
       end;
       
-      // Validation
       if NewPassword <> ConfirmPassword then
-      begin
-        Notification := GenerateErrorNotification('New passwords do not match');
-      end
+        Notification := GenerateErrorNotification('New passwords do not match')
       else if Length(NewPassword) < 6 then
-      begin
-        Notification := GenerateErrorNotification('Password must be at least 6 characters');
-      end
+        Notification := GenerateErrorNotification('Password must be at least 6 characters')
       else
-      begin
-        // Success
         Notification := GenerateSuccessNotification('Password updated successfully!');
-      end;
       
       SettingsHtml := TFile.ReadAllText(GetFilePath('wwwroot\views\settings.html'));
       
-      // Prepend notification to settings HTML
       var Html := Notification + SettingsHtml;
-      
       var Res: IResult := TContentResult.Create(Html, 'text/html');
       Res.Execute(Context);
     end);
