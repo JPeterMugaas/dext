@@ -264,6 +264,7 @@ O repositório contém projetos de exemplo práticos:
 ## 🗺️ Roadmaps
 
 Acompanhe o desenvolvimento do projeto:
+- [Plano de Lançamento V1.0](Docs/Roadmap/v1-release-plan.md) 🚀
 - [ORM Roadmap](Docs/Roadmap/orm-roadmap.md)
 - [Web Framework Roadmap](Docs/Roadmap/web-roadmap.md)
 - [Infra & IDE Roadmap](Docs/Roadmap/infra-roadmap.md)
