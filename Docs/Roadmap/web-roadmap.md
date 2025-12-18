@@ -36,7 +36,7 @@ Melhorias na experiência de construção de APIs robustas e profissionais.
    - [ ] Implementar `DeserializeObject(AJson: IDextJsonObject; AType: PTypeInfo): TValue`
    - [ ] Suporte para objetos aninhados (recursivo)
    - [ ] Suporte para `IList<TObject>` deserialization
-   - [ ] Criar instâncias via RTTI (`TRttiType.GetMethod('Create')`)
+   - [ ] Criar instâncias via `TActivator.CreateInstance<T>` (sem DI)
    - [ ] Setar propriedades via RTTI (`TRttiProperty.SetValue`)
    - [ ] Lidar com propriedades null
    - [ ] Testes abrangentes (POST/PUT endpoints)
