@@ -207,7 +207,39 @@ Foco em otimização extrema, gerenciamento de memória e observabilidade.
 
 ## 🎯 Roadmap Estratégico (Q1-Q2 2025)
 
-### **Sprint 1: Enterprise Essentials** 🔥 **PRIORITÁRIO** (4 semanas)
+### **Sprint 1: Enterprise Essentials** 🔥 **PRIORITÁRIO** (5 semanas)
+
+#### 0. **Class Inheritance Mapping** 🔥 **URGENTE** (1 semana)
+Suportar hierarquias de classes no ORM com estratégias de mapeamento.
+
+**Estratégia 1: Table-Per-Hierarchy (TPH)** - **Implementar Primeiro**
+- Uma tabela para toda a hierarquia com coluna discriminadora
+- Atributos: `[Inheritance(TablePerHierarchy)]`, `[Discriminator('user_type')]`, `[DiscriminatorValue('Admin')]`
+- Queries polimórficas: `Context.Entities<TUser>` retorna `TAdmin`, `TCustomer`, `TGuest`
+- Queries específicas: `Context.Entities<TAdmin>` adiciona filtro automático no discriminador
+- **Pros**: Simples, rápido, sem JOINs
+- **Cons**: Colunas nullable para campos de subclasses
+- **Use Cases**: Hierarquias rasas (2-3 níveis), sistemas com poucos campos específicos
+
+**Estratégia 2: Table-Per-Type (TPT)** - **Futuro**
+- Tabela separada para cada classe (normalizado)
+- Requer JOINs para queries
+- **Pros**: Schema normalizado, sem nullables
+- **Cons**: Performance (JOINs), complexidade
+
+**Implementação TPH**:
+- [ ] Adicionar atributos de herança (`InheritanceAttribute`, `DiscriminatorAttribute`, `DiscriminatorValueAttribute`)
+- [ ] Atualizar `TEntityMapping` para armazenar informações de herança
+- [ ] Modificar `ModelBuilder` para detectar hierarquias e adicionar coluna discriminadora
+- [ ] Atualizar SQL Generator para incluir discriminador em INSERT/UPDATE
+- [ ] Implementar filtro automático em queries (`WHERE user_type = 'Admin'`)
+- [ ] Suportar queries polimórficas (retornar instâncias corretas baseado no discriminador)
+- [ ] Criar testes abrangentes (inserção, atualização, queries polimórficas)
+
+**Resultado**: Suporte completo a herança de classes (TPH), base para domain modeling rico
+
+---
+
 1. **Soft Delete** (1 semana)
    - [x] Global query filters + `[SoftDelete]` attribute
    - [x] Exclusão lógica transparente

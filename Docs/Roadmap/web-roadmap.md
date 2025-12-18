@@ -17,6 +17,47 @@ Blindagem das interfaces para suportar alta performance (Zero-Copy) no futuro.
 
 ### 1. Web API Improvements (Prioridade Alta) 🔥
 Melhorias na experiência de construção de APIs robustas e profissionais.
+
+#### 0. **Object Serialization in Dext.Json** 🔥 **URGENTE** (4-6 horas)
+Atualmente `Dext.Json.pas` só serializa records, primitivos, arrays e listas. **Falta suporte a objetos/classes!**
+
+**Problema**:
+- ❌ Não pode serializar DTOs que são classes
+- ❌ Não pode retornar grafos de objetos complexos de APIs
+- ❌ Limita usabilidade do framework para cenários reais
+
+**Solução**:
+- [ ] Adicionar método `SerializeObject(const AValue: TValue): IDextJsonObject`
+- [ ] Atualizar `ValueToJson` para rotear `tkClass` corretamente (distinguir entre listas e objetos)
+- [ ] Implementar detecção de referências circulares (`TDictionary<TObject, Boolean>`)
+- [ ] Suportar atributos `[JsonIgnore]` e `[JsonName]` para controle de serialização
+- [ ] Lidar com objetos null (retornar `null` JSON)
+- [ ] Implementar deserialização (`DeserializeObject`)
+- [ ] Criar testes abrangentes (objetos simples, aninhados, circulares, null)
+
+**Exemplo de Uso**:
+```pascal
+type
+  TAddress = class
+    Street: string;
+    City: string;
+  end;
+  
+  TPerson = class
+    Name: string;
+    Age: Integer;
+    Address: TAddress;  // Objeto aninhado
+  end;
+
+// Serialização automática
+var Json := TDextJson.Serialize(Person);
+// {"Name":"John","Age":30,"Address":{"Street":"5th Ave","City":"NYC"}}
+```
+
+**Resultado**: Serialização completa de objetos, desbloqueando uso real do framework em APIs
+
+---
+
 - [x] **Content Negotiation Avançado**: Suporte a múltiplos formatos de saída baseados no header `Accept`.
   - [x] Interfaces: `IOutputFormatter` (JSON, XML, CSV).
   - [x] Implementação padrão JSON (já existente, mas desacoplar).
