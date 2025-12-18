@@ -1,4 +1,4 @@
-{***************************************************************************}
+Ôªø{***************************************************************************}
 {                                                                           }
 {           Dext Framework                                                  }
 {                                                                           }
@@ -52,7 +52,9 @@ type
     function GetBody: TStream;
     function GetRouteParams: TDictionary<string, string>;
     function GetHeaders: TDictionary<string, string>;
-    function GetRemoteIpAddress: string; // ? Added
+    function GetRemoteIpAddress: string;
+    function GetHeader(const AName: string): string;
+    function GetQueryParam(const AName: string): string;
   end;
 
   TIndyHttpResponse = class(TInterfacedObject, IHttpResponse)
@@ -68,7 +70,7 @@ type
     procedure Write(const AContent: string); overload;
     procedure Write(const ABuffer: TBytes); overload; // ? Added
     procedure Json(const AJson: string);
-    procedure AddHeader(const AName, AValue: string); // ? NOVO: ImplementaÁ„o da interface
+    procedure AddHeader(const AName, AValue: string); // ? NOVO: Implementa√ß√£o da interface
   end;
 
   TIndyHttpContext = class(TInterfacedObject, IHttpContext)
@@ -95,36 +97,12 @@ implementation
 { TIndyHttpRequest }
 
 constructor TIndyHttpRequest.Create(ARequestInfo: TIdHTTPRequestInfo);
-var
-  FormData: string;
 begin
   inherited Create;
   FRequestInfo := ARequestInfo;
-  FQuery := ParseQueryString(FRequestInfo.QueryParams);
   FRouteParams := TDictionary<string, string>.Create;
-  FHeaders := ParseHeaders(FRequestInfo.RawHeaders);
-  
-  // Criar cÛpia do body stream para n„o depender do lifecycle do Indy
-  if Assigned(FRequestInfo.PostStream) then
-  begin
-    FBodyStream := TMemoryStream.Create;
-    FBodyStream.CopyFrom(FRequestInfo.PostStream, 0);
-    FBodyStream.Position := 0;
-  end
-  // Se PostStream n„o existe, tentar ler de FormParams (form-urlencoded)
-  else if (FRequestInfo.FormParams <> '') or (FRequestInfo.UnparsedParams <> '') then
-  begin
-    // Usar UnparsedParams se disponÌvel, sen„o FormParams
-    if FRequestInfo.UnparsedParams <> '' then
-      FormData := FRequestInfo.UnparsedParams
-    else
-      FormData := FRequestInfo.FormParams;
-      
-    FBodyStream := TMemoryStream.Create;
-    var Bytes := TEncoding.UTF8.GetBytes(FormData);
-    FBodyStream.WriteBuffer(Bytes[0], Length(Bytes));
-    FBodyStream.Position := 0;
-  end;
+  // Note: FQuery, FHeaders, FBodyStream are NIL and will be lazy loaded
+
 end;
 
 destructor TIndyHttpRequest.Destroy;
@@ -136,7 +114,7 @@ begin
   inherited Destroy;
 end;
 
-// ? NOVO: Parsear headers do Indy para dicion·rio
+// ? NOVO: Parsear headers do Indy para dicion√°rio
 function TIndyHttpRequest.ParseHeaders(AHeaderList: TIdHeaderList): TDictionary<string, string>;
 var
   I: Integer;
@@ -156,9 +134,16 @@ begin
   end;
 end;
 
+function TIndyHttpRequest.GetHeader(const AName: string): string;
+begin
+  Result := FRequestInfo.RawHeaders.Values[AName];
+end;
+
 function TIndyHttpRequest.GetHeaders: TDictionary<string, string>;
 begin
-  Result := FHeaders; // ? NOVO: Retornar headers
+  if FHeaders = nil then
+    FHeaders := ParseHeaders(FRequestInfo.RawHeaders);
+  Result := FHeaders;
 end;
 
 function TIndyHttpRequest.GetRemoteIpAddress: string;
@@ -205,7 +190,14 @@ end;
 
 function TIndyHttpRequest.GetQuery: TStrings;
 begin
+  if FQuery = nil then
+    FQuery := ParseQueryString(FRequestInfo.QueryParams);
   Result := FQuery;
+end;
+
+function TIndyHttpRequest.GetQueryParam(const AName: string): string;
+begin
+  Result := GetQuery.Values[AName];
 end;
 
 function TIndyHttpRequest.GetRouteParams: TDictionary<string, string>;
@@ -214,7 +206,32 @@ begin
 end;
 
 function TIndyHttpRequest.GetBody: TStream;
+var
+  FormData: string;
 begin
+  if FBodyStream = nil then
+  begin
+    // Lazy load body
+    if Assigned(FRequestInfo.PostStream) then
+    begin
+      FBodyStream := TMemoryStream.Create;
+      FBodyStream.CopyFrom(FRequestInfo.PostStream, 0);
+      FBodyStream.Position := 0;
+    end
+    else if (FRequestInfo.FormParams <> '') or (FRequestInfo.UnparsedParams <> '') then
+    begin
+      if FRequestInfo.UnparsedParams <> '' then
+        FormData := FRequestInfo.UnparsedParams
+      else
+        FormData := FRequestInfo.FormParams;
+        
+      FBodyStream := TMemoryStream.Create;
+      var Bytes := TEncoding.UTF8.GetBytes(FormData);
+      if Length(Bytes) > 0 then
+        FBodyStream.WriteBuffer(Bytes[0], Length(Bytes));
+      FBodyStream.Position := 0;
+    end;
+  end;
   Result := FBodyStream;
 end;
 
@@ -226,7 +243,7 @@ begin
   FResponseInfo := AResponseInfo;
 end;
 
-// ? NOVO: Adicionar header ‡ response
+// ? NOVO: Adicionar header √† response
 procedure TIndyHttpResponse.AddHeader(const AName, AValue: string);
 begin
   FResponseInfo.CustomHeaders.AddValue(AName, AValue);
@@ -337,12 +354,12 @@ var
   IndyRequest: TIndyHttpRequest;
   Param: TPair<string, string>;
 begin
-  // ? CORRE«√O: Cast manual em vez de Supports
+  // ? CORRE√á√ÉO: Cast manual em vez de Supports
   if FRequest is TIndyHttpRequest then
   begin
     IndyRequest := TIndyHttpRequest(FRequest);
 
-    // Limpar par‚metros existentes e adicionar os novos
+    // Limpar par√¢metros existentes e adicionar os novos
     IndyRequest.FRouteParams.Clear;
     for Param in AParams do
     begin
@@ -362,4 +379,3 @@ begin
 end;
 
 end.
-

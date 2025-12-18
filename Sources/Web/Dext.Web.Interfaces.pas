@@ -72,14 +72,16 @@ type
     function GetBody: TStream;
     function GetRouteParams: TDictionary<string, string>;
     function GetHeaders: TDictionary<string, string>;
-    function GetRemoteIpAddress: string; // ? Added
+    function GetRemoteIpAddress: string;
+    function GetHeader(const AName: string): string;
+    function GetQueryParam(const AName: string): string;
     property Method: string read GetMethod;
     property Path: string read GetPath;
     property Query: TStrings read GetQuery;
     property Body: TStream read GetBody;
     property RouteParams: TDictionary<string, string> read GetRouteParams;
     property Headers: TDictionary<string, string> read GetHeaders;
-    property RemoteIpAddress: string read GetRemoteIpAddress; // ? Added
+    property RemoteIpAddress: string read GetRemoteIpAddress;
   end;
 
   IHttpResponse = interface
