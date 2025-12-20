@@ -33,6 +33,7 @@ uses
   System.Generics.Collections,
   System.Rtti,
   System.TypInfo,
+  Dext.Types.UUID,
   Dext.DI.Interfaces,
   Dext.Web.Interfaces,
   Dext.Json,
@@ -488,7 +489,7 @@ var
 begin
   // ✅ SUPPORT FOR PRIMITIVES (Single Route Param Inference)
   if (AType.Kind in [tkInteger, tkInt64, tkFloat, tkString, tkLString, tkWString, tkUString, tkEnumeration]) or
-     ((AType.Kind = tkRecord) and (AType = TypeInfo(TGUID))) then
+     ((AType.Kind = tkRecord) and ((AType = TypeInfo(TGUID)) or (AType = TypeInfo(TUUID)))) then
   begin
     RouteParams := Context.Request.RouteParams;
     
@@ -1032,6 +1033,7 @@ begin
         end;
       tkRecord:
         begin
+          // TGUID support
           if AType = TypeInfo(TGUID) then
           begin
             var GuidStr := AValue.Trim;
@@ -1048,8 +1050,22 @@ begin
             else
               Result := TValue.From<TGUID>(StringToGUID(GuidStr));
           end
+          // TUUID support (RFC 9562 compliant)
+          else if AType = TypeInfo(TUUID) then
+          begin
+            var GuidStr := AValue.Trim;
+            if GuidStr = '' then
+            begin
+              Result := TValue.From<TUUID>(TUUID.Null);
+              Exit;
+            end;
+
+            // TUUID.FromString handles all formats (with/without braces, hyphens)
+            var U := TUUID.FromString(GuidStr);
+            TValue.Make(@U, TypeInfo(TUUID), Result);
+          end
           else
-            raise EBindingException.Create('Cannot convert string to Record (except GUID)');
+            raise EBindingException.Create('Cannot convert string to Record (except TGUID and TUUID)');
         end;
       else
         // Default for unknown types
