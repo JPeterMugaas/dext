@@ -48,6 +48,8 @@ type
     class function SwapEndianness(const G: TGUID): TGUID; static;
     class function GUIDToBytes(const G: TGUID): TArray<Byte>; static;
   public
+    class function BytesToGUID(const Bytes: array of Byte): TGUID; static;
+
     /// <summary>Generates a new UUID v4 (random).</summary>
     class function NewV4: TUUID; static;
     
@@ -106,6 +108,13 @@ begin
   // Swap D3 (2 bytes)
   Result.D3 := Swap(Result.D3);
   // D4 stays the same (already Big-Endian)
+end;
+
+class function TUUID.BytesToGUID(const Bytes: array of Byte): TGUID;
+begin
+  if Length(Bytes) <> 16 then
+    raise Exception.Create('Invalid byte array length for UUID');
+  Move(Bytes[0], Result, 16);
 end;
 
 class function TUUID.GUIDToBytes(const G: TGUID): TArray<Byte>;
