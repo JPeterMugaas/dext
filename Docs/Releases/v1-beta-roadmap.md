@@ -2,6 +2,14 @@
 
 Este documento consolida o plano de trabalho para a fase **Beta V1.0**. O objetivo é garantir que todas as funcionalidades implementadas estejam documentadas, testadas e prontas para uso em produção.
 
+> ⚠️ **Documento em Construção**: Este roteiro está sendo atualizado ativamente. Estamos realizando uma auditoria completa no código-fonte e descobrindo funcionalidades já implementadas que não estavam documentadas. Novas features podem ser adicionadas ou movidas de categoria a qualquer momento.
+
+### 🗺️ Roadmaps Detalhados (Spec & Tracking)
+Para detalhes técnicos e status granular de cada módulo, consulte:
+- [**Web Framework Roadmap**](../Roadmap/web-roadmap.md) (Abstrações HTTP, MVC, SignalR)
+- [**ORM Roadmap**](../Roadmap/orm-roadmap.md) (Dialetos, Type System, Performance)
+- [**Infra & CLI Roadmap**](../Roadmap/infra-roadmap.md) (Hosting, DI, Logging)
+
 ---
 
 ## 📋 1. Inventário de Funcionalidades (Feature Set)
@@ -27,6 +35,21 @@ Este documento consolida o plano de trabalho para a fase **Beta V1.0**. O objeti
 | **Stream Responses** | ✅ Pronto | `Response.Write(TStream)` |
 | **Response Caching** | ✅ Pronto | `[ResponseCache]` header control |
 | **Filters Pipeline** | ✅ Pronto | Action & Result Filters (`LogAction`, `RequireHeader`) |
+| **JWT Authentication** | ✅ Pronto | Geração e Validação de Tokens (HS256) |
+| **Validation** | ✅ Pronto | Library de validação com Atributos (`[Required]`, `[Email]`) |
+| **Options Pattern** | ✅ Pronto | Binding de configuração para classes (`IOptions<T>`) |
+
+### 🛠️ Dext.Web Middlewares (Built-in)
+| Middleware | Classe | Função |
+|------------|--------|--------|
+| **Exception Handler** | `TExceptionHandlerMiddleware` | Captura exceções globais e retorna JSON/ProblemDetails ou página de erro. |
+| **HTTP Logging** | `THttpLoggingMiddleware` | Loga requisições, respostas, headers e body (configurável). |
+| **CORS** | `TCorsMiddleware` | Gerencia Cross-Origin Resource Sharing com policies flexíveis. |
+| **Rate Limiting** | `TRateLimitMiddleware` | Limita requisições por IP, rota ou chave customizada (Token Bucket, Fixed Window). |
+| **Static Files** | `TStaticFileMiddleware` | Serve arquivos estáticos com negociação de MIME types. |
+| **Multi-Tenancy** | `TMultiTenancyMiddleware` | Resolve o Tenant atual e popula o contexto. |
+| **Startup Lock** | `TStartupLockMiddleware` | Retorna 503 se a aplicação estiver em estado de inicialização/migração. |
+| **Compression** | `TCompressionMiddleware` | Comprime respostas (GZip) se suportado pelo cliente. |
 
 ### 🗄️ Dext.Entity (ORM)
 | Feature | Status | Notas |
@@ -39,6 +62,7 @@ Este documento consolida o plano de trabalho para a fase **Beta V1.0**. O objeti
 | **Multi-Tenancy** | ✅ Pronto | Schema-based, DB-based, Column-based |
 | **Advanced Types** (UUID, JSON, Arrays) | ✅ Pronto | Serialização automática |
 | **Bulk Operations** | ✅ Pronto | Update/Delete em massa |
+| **Advanced Querying** | 🟡 Parcial | `Join` e `GroupBy` (In-Memory ✅, SQL Pending ⚠️) |
 | **Inheritance Mapping** (TPH) | ✅ Pronto | Discriminator column suportado |
 | **Lazy Loading** | ✅ Pronto | `Lazy<T>`, `IList<T>` e `ILazy<T>` wrapper |
 | **Scaffolding** (DB First) | ✅ Pronto | Geração de Entities via Schema do Banco |
@@ -53,6 +77,14 @@ Este documento consolida o plano de trabalho para a fase **Beta V1.0**. O objeti
 | **Async Tasks** (`TAsyncTask`) | ✅ Pronto | Primitivas modernas de concorrência |
 | **Logging** (`ILogger`) | ✅ Pronto | Abstração de log |
 | **Configuration** (`IConfiguration`) | ✅ Pronto | JSON file provider |
+
+### 🔄 Hosting & Lifecycle
+| Feature | Status | Notas |
+|---------|--------|-------|
+| **Application State** (`IAppStateObserver`) | ✅ Pronto | Estados: Starting, Seeding, Running, Stopping |
+| **Graceful Shutdown** (`IHostApplicationLifetime`) | ✅ Pronto | Tokens para `Started`, `Stopping`, `Stopped` |
+| **Background Services** (`IHostedService`) | ✅ Pronto | Tarefas assíncronas em background com DI |
+| **Startup Lock** (`TStartupLockMiddleware`) | ✅ Pronto | Bloqueia requests com 503 durante o boot |
 
 ---
 
@@ -125,9 +157,12 @@ Funcionalidades movidas para v1.1 ou v2.0:
 - **Server-Sent Events (SSE)**: Alternativa leve a WebSockets para pushes unidirecionais.
 - **Background Jobs/Queues**: Sistema de filas para processamento assíncrono robusto (integração Redis/RabbitMQ).
 - **Scheduled Jobs (CRON)**: Agendamento de tarefas recorrentes (ex: relatórios diários, limpeza de dados).
-- **Observability**: Integração com OpenTelemetry/Prometheus para métricas e tracing distribuído.
-- **Docker Tooling**: Templates de `Dockerfile` e comando `dext docker init` para facilitar o deployment.
-- **Validation Library**: Biblioteca de "Fluent Validation" ou suporte robusto a Data Annotations.
+
+- **Docker Tooling**: Templates de `Dockerfile` e comando `dext docker init` para facilitar o deployment. (Prioritário)
+- **Telemetry & Observability**: Suporte a OpenTelemetry (Tracing/Metrics) e dashboards nativos.
+- **Testing Ecosystem**: Framework `Dext.Mock` e Fluent Assertions (`Expect(X).Should.Be(Y)`).
+- **Advanced Resilience**: Patterns de Retry, Circuit Breaker e Timeout na Async API.
+- **Kestrel NativeAOT**: Driver de alta performance via ponte com .NET (Experimental).
 - **View Engine**: Integração com **WebStencils** (novo engine do Delphi) ou criação de sintaxe Razor-like.
 - **Server Adapters**: Suportar deployment em **WebBroker** (ISAPI/Apache/IIS) além do Indy.
 - **Native Integration**: Explorar integração opcional com **LiveBindings** para cenários RAD e adapters para **DataSnap**.
