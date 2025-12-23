@@ -31,7 +31,7 @@ Hiding the complexity of HTTP servers, memory management, and concurrency requir
 
 * **In practice:** You write `App.MapGet`, and the framework quietly resolves routing, JSON serialization, and error handling.
 
-> **"Make what is right easy and what is wrong difficult."** — *Steve Smith*
+> **"Make what is right easy and what is wrong difficult."** — *Steve "Ardalis" Smith*
 
 A good framework should guide the developer into the "Pit of Success". Dext was designed so that best practices—such as Dependency Injection, interface segregation, and using DTOs—are the natural default, not a burdensome extra configuration.
 

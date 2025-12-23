@@ -294,6 +294,14 @@ begin
     FillChar(Guid, SizeOf(TGUID), 0);
     TValue.Make(@Guid, TypeInfo(TGUID), Result);
   end
+  else if AValue.TypeInfo = TypeInfo(TGUID) then
+  begin
+    // FireDAC returns TGUID directly - use as-is (byte-order is consistent)
+    Guid := AValue.AsType<TGUID>;
+    if FSwapEndianness then
+      Guid := DoSwap(Guid);
+    TValue.Make(@Guid, TypeInfo(TGUID), Result);
+  end
   else
   begin
     GuidStr := AValue.AsString;
@@ -347,10 +355,25 @@ function TUuidConverter.FromDatabase(const AValue: TValue; ATypeInfo: PTypeInfo)
 var
   U: TUUID;
   GuidStr: string;
+  G: TGUID;
+  Bytes: array[0..15] of Byte;
 begin
   if AValue.IsEmpty then
   begin
     U := TUUID.Null;
+    TValue.Make(@U, TypeInfo(TUUID), Result);
+  end
+  else if AValue.TypeInfo = TypeInfo(TGUID) then
+  begin
+    // FireDAC returns TGUID when reading PostgreSQL uuid columns
+    // The raw bytes in TGUID memory are correct (Big-Endian) - extract them directly
+    G := AValue.AsType<TGUID>;
+    Move(G, Bytes[0], 16);
+    // Format as canonical UUID string from raw bytes
+    GuidStr := LowerCase(Format('%2.2x%2.2x%2.2x%2.2x-%2.2x%2.2x-%2.2x%2.2x-%2.2x%2.2x-%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x',
+      [Bytes[0], Bytes[1], Bytes[2], Bytes[3], Bytes[4], Bytes[5], Bytes[6], Bytes[7],
+       Bytes[8], Bytes[9], Bytes[10], Bytes[11], Bytes[12], Bytes[13], Bytes[14], Bytes[15]]));
+    U := TUUID.FromString(GuidStr);
     TValue.Make(@U, TypeInfo(TUUID), Result);
   end
   else

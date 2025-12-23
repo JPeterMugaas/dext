@@ -54,6 +54,10 @@ uses
   Dext.MultiTenancy,
   Dext.Entity.Tenancy;
 
+// Helper function to convert TValue to string for identity map keys
+// TValue.ToString does not work correctly for TGUID (returns type name, not value)
+function TValueToKeyString(const AValue: TValue): string;
+
 type
   TDbSet<T: class> = class(TInterfacedObject, IDbSet<T>, IDbSet)
   private
@@ -156,6 +160,32 @@ implementation
 
 uses
   Dext.Entity.LazyLoading;
+
+function TValueToKeyString(const AValue: TValue): string;
+var
+  G: TGUID;
+  U: TUUID;
+  Bytes: array[0..15] of Byte;
+begin
+  if AValue.IsEmpty then
+    Result := ''
+  else if AValue.TypeInfo = TypeInfo(TGUID) then
+  begin
+    // Extract raw bytes from TGUID and format as UUID string
+    G := AValue.AsType<TGUID>;
+    Move(G, Bytes[0], 16);
+    Result := LowerCase(Format('%2.2x%2.2x%2.2x%2.2x-%2.2x%2.2x-%2.2x%2.2x-%2.2x%2.2x-%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x',
+      [Bytes[0], Bytes[1], Bytes[2], Bytes[3], Bytes[4], Bytes[5], Bytes[6], Bytes[7],
+       Bytes[8], Bytes[9], Bytes[10], Bytes[11], Bytes[12], Bytes[13], Bytes[14], Bytes[15]]));
+  end
+  else if AValue.TypeInfo = TypeInfo(TUUID) then
+  begin
+    U := AValue.AsType<TUUID>;
+    Result := U.ToString;
+  end
+  else
+    Result := AValue.ToString;
+end;
 
 { TDbSet<T> }
 
@@ -396,7 +426,7 @@ begin
         begin
           if SameText(PKCol, ColName) then
           begin
-             PKValues.Add(PKCol, Reader.GetValue(i).ToString); 
+             PKValues.Add(PKCol, TValueToKeyString(Reader.GetValue(i))); 
              Break;
           end;
         end;
@@ -1247,9 +1277,11 @@ begin
     if FProps.TryGetValue(FPKColumns[0].ToLower, PKProp) then
     begin
        PropName := PKProp.Name;
-       // Coerce GUIDs if necessary
+       // Coerce GUIDs and UUIDs if necessary
        if (PKProp.PropertyType.Handle = TypeInfo(TGUID)) and VarIsStr(AId) then
          Val := TValue.From<TGUID>(StringToGUID(VarToStr(AId)))
+       else if (PKProp.PropertyType.Handle = TypeInfo(TUUID)) and VarIsStr(AId) then
+         Val := TValue.From<TUUID>(TUUID.FromString(VarToStr(AId)))
        else
          Val := TValue.FromVariant(AId);
     end;

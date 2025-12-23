@@ -31,6 +31,7 @@ uses
   System.SysUtils,
   System.TypInfo,
   System.Generics.Collections,
+  Dext.Types.UUID,
   Dext.Entity.Attributes,
   Dext.Entity.Migrations.Operations;
 
@@ -589,6 +590,7 @@ begin
     tkRecord:
       begin
         if ATypeInfo = TypeInfo(TGUID) then Result := 'UUID'
+        else if ATypeInfo = TypeInfo(TUUID) then Result := 'UUID'
         else Result := 'JSONB'; // Records as JSONB
       end;
     tkClass:
@@ -751,6 +753,7 @@ begin
     tkRecord:
       begin
         if ATypeInfo = TypeInfo(TGUID) then Result := 'UNIQUEIDENTIFIER'
+        else if ATypeInfo = TypeInfo(TUUID) then Result := 'UNIQUEIDENTIFIER'
         else Result := 'NVARCHAR(MAX)';
       end;
   else

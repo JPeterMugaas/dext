@@ -218,6 +218,9 @@ begin
     ftDateTime, ftTimeStamp: Result := TValue.From<TDateTime>(Field.AsDateTime);
     ftBlob, ftOraBlob, ftGraphic: Result := TValue.From<TBytes>(Field.AsBytes);
     ftString, ftWideString, ftMemo, ftWideMemo: Result := TValue.From<string>(Field.AsString);
+    ftGuid:
+      // Return TGUID directly - TypeConverters handle byte-order conversion
+      Result := TValue.From<TGUID>(TGuidField(Field).AsGuid);
     else
       Result := TValue.FromVariant(Field.Value);
   end;
@@ -234,6 +237,9 @@ begin
     ftDateTime, ftTimeStamp: Result := TValue.From<TDateTime>(Field.AsDateTime);
     ftBlob, ftOraBlob, ftGraphic: Result := TValue.From<TBytes>(Field.AsBytes);
     ftString, ftWideString, ftMemo, ftWideMemo: Result := TValue.From<string>(Field.AsString);
+    ftGuid:
+      // Return TGUID directly - TypeConverters handle byte-order conversion
+      Result := TValue.From<TGUID>(TGuidField(Field).AsGuid);
     else
       Result := TValue.FromVariant(Field.Value);
   end;

@@ -25,6 +25,7 @@ uses
   FireDAC.Phys,
   Dext,
   Dext.Collections,
+  Dext.Types.UUID,
   Dext.Entity.Core,
   Dext.Entity.Attributes,
   Dext.Entity.Context,
@@ -47,6 +48,19 @@ type
   public
     [PK]
     property Id: TGUID read FId write FId;
+    [Column('name')]
+    property Name: string read FName write FName;
+  end;
+
+  // TUUID Entity - Tests RFC 9562 compliant UUID handling
+  [Table('test_uuid_entities')]
+  TUuidEntity = class
+  private
+    FId: TUUID;
+    FName: string;
+  public
+    [PK]
+    property Id: TUUID read FId write FId;
     [Column('name')]
     property Name: string read FName write FName;
   end;
@@ -132,12 +146,14 @@ type
     function GetCompositeIntDateTime: IDbSet<TCompositeIntDateTime>;
     function GetEnumEntities: IDbSet<TEnumEntity>;
     function GetJsonEntities: IDbSet<TJsonEntity>;
+    function GetUuidEntities: IDbSet<TUuidEntity>;
   public
     property GuidEntities: IDbSet<TGuidEntity> read GetGuidEntities;
     property CompositeGuidInt: IDbSet<TCompositeGuidInt> read GetCompositeGuidInt;
     property CompositeIntDateTime: IDbSet<TCompositeIntDateTime> read GetCompositeIntDateTime;
     property EnumEntities: IDbSet<TEnumEntity> read GetEnumEntities;
     property JsonEntities: IDbSet<TJsonEntity> read GetJsonEntities;
+    property UuidEntities: IDbSet<TUuidEntity> read GetUuidEntities;
   end;
 
 { TJsonEntity }
@@ -178,6 +194,11 @@ end;
 function TTestDbContext.GetJsonEntities: IDbSet<TJsonEntity>;
 begin
   Result := Entities<TJsonEntity>;
+end;
+
+function TTestDbContext.GetUuidEntities: IDbSet<TUuidEntity>;
+begin
+  Result := Entities<TUuidEntity>;
 end;
 
 procedure EnsureDatabaseExists;
@@ -222,6 +243,7 @@ begin
   // We use RegisterConverterForType to validly OVERRIDE the default global converter for TGUID
   // This is required for PostgreSQL + FireDAC to handle endianness correctly
   TTypeConverterRegistry.Instance.RegisterConverterForType(TypeInfo(TGUID), TGuidConverter.Create(True));
+  TTypeConverterRegistry.Instance.RegisterConverterForType(TypeInfo(TUUID), TUuidConverter.Create);
   TTypeConverterRegistry.Instance.RegisterConverter(TEnumConverter.Create(False));
   TTypeConverterRegistry.Instance.RegisterConverterForType(TypeInfo(TJsonMetadata), TJsonConverter.Create(True));
 end;
@@ -445,6 +467,78 @@ begin
   end;
 end;
 
+procedure TestUuid(Db: TTestDbContext);
+var
+  TestUuid: TUUID;
+  Entity: TUuidEntity;
+  List: IList<TUuidEntity>;
+  Loaded: TUuidEntity;
+  OriginalStr: string;
+begin
+  WriteLn('► Testing TUUID (RFC 9562)...');
+  
+  // Clean up
+  ExecSQL(Db, 'DELETE FROM test_uuid_entities');
+  
+  // Generate a new UUID v7
+  TestUuid := TUUID.NewV7;
+  OriginalStr := TestUuid.ToString;
+  
+  WriteLn('  Original TUUID: ', OriginalStr);
+  
+  // Create entity
+  Entity := TUuidEntity.Create;
+  Entity.Id := TestUuid;
+  Entity.Name := 'Test TUUID Entity';
+  
+  // Save
+  WriteLn('  Saving entity...');
+  Db.UuidEntities.Add(Entity);
+  Db.SaveChanges;
+  
+  // Clear context
+  Db.Clear;
+  
+  // Test List
+  WriteLn('  Loading via ToList...');
+  List := Db.UuidEntities.ToList;
+  
+  if List.Count = 0 then
+    raise Exception.Create('TUUID List returned empty!');
+  
+  Loaded := List[0];
+  WriteLn('  Loaded TUUID:   ', Loaded.Id.ToString);
+  
+  // Verify byte-order is correct
+  if Loaded.Id.ToString <> OriginalStr then
+  begin
+    WriteLn('  ❌ MISMATCH!');
+    WriteLn('     Original: ', OriginalStr);
+    WriteLn('     Loaded:   ', Loaded.Id.ToString);
+    raise Exception.Create('TUUID byte-order mismatch in List!');
+  end;
+  
+  WriteLn('  ✓ List OK');
+  
+  // Test Find
+  Db.Clear;
+  WriteLn('  Finding by TUUID string...');
+  Loaded := Db.UuidEntities.Find(OriginalStr);
+  
+  if Loaded = nil then
+    raise Exception.Create('TUUID Find returned nil!');
+    
+  if Loaded.Id.ToString <> OriginalStr then
+  begin
+    WriteLn('  ❌ MISMATCH in Find!');
+    raise Exception.Create('TUUID byte-order mismatch in Find!');
+  end;
+  
+  WriteLn('  Found Name: ', Loaded.Name);
+  WriteLn('  ✓ Find OK');
+  WriteLn('  ✓ TUUID Test PASSED');
+end;
+
 var
   Db: TTestDbContext;
   Connection: IDbConnection;
@@ -490,6 +584,9 @@ begin
       
       C := Connection.CreateCommand('DROP TABLE IF EXISTS test_json_entities');
       (C as IDbCommand).ExecuteNonQuery;
+      
+      C := Connection.CreateCommand('DROP TABLE IF EXISTS test_uuid_entities');
+      (C as IDbCommand).ExecuteNonQuery;
 
       // Force initialization of DbSets
       if Db.GuidEntities <> nil then;
@@ -497,6 +594,7 @@ begin
       if Db.CompositeIntDateTime <> nil then;
       if Db.EnumEntities <> nil then;
       if Db.JsonEntities <> nil then;
+      if Db.UuidEntities <> nil then;
       
       Db.EnsureCreated;
       
@@ -520,6 +618,9 @@ begin
       WriteLn;
       
       TestJson(Db);
+      WriteLn;
+      
+      TestUuid(Db);  // TUUID RFC 9562 test
       WriteLn;
       
       WriteLn('─────────────────────────────────────────────────────────');
