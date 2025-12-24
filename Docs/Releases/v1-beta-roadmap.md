@@ -70,6 +70,7 @@ For technical details and granular status of each module, check:
 | **Soft Delete** | ✅ Ready | `[SoftDelete]` attribute |
 | **Optimistic Concurrency** | ✅ Ready | `[Version]` attribute |
 | **FireDAC Phys Driver** | ✅ Ready | Physical driver for transparent integration with FireDAC |
+| **Field Mapping** | 🟡 In Progress | Field-based mapping (in addition to properties) to avoid triggering setters when loading from database |
 
 
 ### ⚙️ Infrastructure & CLI
@@ -80,6 +81,9 @@ For technical details and granular status of each module, check:
 | **Logging** (`ILogger`) | ✅ Ready | Log abstraction |
 | **Configuration** (`IConfiguration`) | ✅ Ready | JSON file provider |
 | **Binary JSON Parser** | ✅ Ready | High-performance binary JSON parser |
+| **AutoMapper** (`TMapper`) | ✅ Ready | DTO ↔ Entity mapping with RTTI, custom member mapping and collections |
+| **Custom Constructors (DI)** | 🟡 In Progress | `[ServiceConstructor]` attribute to specify which constructor to use |
+| **TypeInfo Cache** | 🟡 In Progress | RTTI metadata cache for performance optimization |
 
 ### 🔄 Hosting & Lifecycle
 | Feature | Status | Notes |
@@ -167,6 +171,7 @@ Establish a performance baseline for V1.
 ## 🔮 6. Future Roadmap (Post-V1)
 
 Features moved to v1.1 or v2.0:
+- **MediatR Pattern**: Implementation of the Mediator pattern for CQRS (Command/Query Responsibility Segregation), facilitating separation of business logic and handlers. Support for `IRequest<TResponse>`, `IRequestHandler<TRequest, TResponse>`, and pipeline behaviors for validation, logging, and transactions.
 - **WebSockets**: Native support for bidirectional real-time communication (needed for Dext Forum).
 - **Server-Sent Events (SSE)**: Lightweight alternative to WebSockets for unidirectional pushes.
 - **Background Jobs/Queues**: Robust queue system for asynchronous processing (Redis/RabbitMQ integration).

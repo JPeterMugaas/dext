@@ -27,6 +27,7 @@
   Dext.Logging,
   Dext.Logging.Console,
   Dext.Logging.Extensions,
+  Dext.Mapper,
   Dext.MultiTenancy,
   Dext.Options,
   Dext.Options.Extensions,

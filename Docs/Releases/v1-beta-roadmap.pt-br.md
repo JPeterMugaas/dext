@@ -70,6 +70,7 @@ Para detalhes técnicos e status granular de cada módulo, consulte:
 | **Soft Delete** | ✅ Pronto | Atributo `[SoftDelete]` |
 | **Optimistic Concurrency** | ✅ Pronto | Atributo `[Version]` |
 | **FireDAC Phys Driver** | ✅ Pronto | Driver físico para integração transparente com FireDAC |
+| **Field Mapping** | 🟡 Em Progresso | Mapeamento por fields (além de properties) para evitar disparar setters ao carregar do banco |
 
 
 ### ⚙️ Infraestrutura & CLI
@@ -80,6 +81,9 @@ Para detalhes técnicos e status granular de cada módulo, consulte:
 | **Logging** (`ILogger`) | ✅ Pronto | Abstração de log |
 | **Configuration** (`IConfiguration`) | ✅ Pronto | JSON file provider |
 | **Binary JSON Parser** | ✅ Pronto | Parser JSON binário de alta performance |
+| **AutoMapper** (`TMapper`) | ✅ Pronto | Mapeamento DTO ↔ Entity com RTTI, custom member mapping e collections |
+| **Custom Constructors (DI)** | 🟡 Em Progresso | Attribute `[ServiceConstructor]` para especificar qual constructor usar |
+| **TypeInfo Cache** | 🟡 Em Progresso | Cache de RTTI metadata para otimização de performance |
 
 ### 🔄 Hosting & Lifecycle
 | Feature | Status | Notas |
@@ -167,6 +171,7 @@ Estabelecer uma baseline de performance para a V1.
 ## 🔮 6. Roadmap Futuro (Pós-V1)
 
 Funcionalidades movidas para v1.1 ou v2.0:
+- **MediatR Pattern**: Implementação do padrão Mediator para CQRS (Command/Query Responsibility Segregation), facilitando a separação de lógica de negócio e handlers. Suporte a `IRequest<TResponse>`, `IRequestHandler<TRequest, TResponse>`, e pipeline behaviors para validação, logging e transações.
 - **WebSockets**: Suporte nativo para comunicação bidirecional em tempo real (necessário para Dext Forum).
 - **Server-Sent Events (SSE)**: Alternativa leve a WebSockets para pushes unidirecionais.
 - **Background Jobs/Queues**: Sistema de filas para processamento assíncrono robusto (integração Redis/RabbitMQ).

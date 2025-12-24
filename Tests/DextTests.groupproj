@@ -39,6 +39,21 @@
         <Projects Include="AppBuilder\Dext.AppBuilderTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Core\TestUUID.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Core\TestJsonUUID.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Core\TestUtf8Json.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Core\TestUtf8Serializer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Core\TestMapper.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -155,14 +170,59 @@
     <Target Name="Dext_AppBuilderTest:Make">
         <MSBuild Projects="AppBuilder\Dext.AppBuilderTest.dproj" Targets="Make"/>
     </Target>
+    <Target Name="TestUUID">
+        <MSBuild Projects="Core\TestUUID.dproj"/>
+    </Target>
+    <Target Name="TestUUID:Clean">
+        <MSBuild Projects="Core\TestUUID.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestUUID:Make">
+        <MSBuild Projects="Core\TestUUID.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestJsonUUID">
+        <MSBuild Projects="Core\TestJsonUUID.dproj"/>
+    </Target>
+    <Target Name="TestJsonUUID:Clean">
+        <MSBuild Projects="Core\TestJsonUUID.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestJsonUUID:Make">
+        <MSBuild Projects="Core\TestJsonUUID.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestUtf8Json">
+        <MSBuild Projects="Core\TestUtf8Json.dproj"/>
+    </Target>
+    <Target Name="TestUtf8Json:Clean">
+        <MSBuild Projects="Core\TestUtf8Json.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestUtf8Json:Make">
+        <MSBuild Projects="Core\TestUtf8Json.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestUtf8Serializer">
+        <MSBuild Projects="Core\TestUtf8Serializer.dproj"/>
+    </Target>
+    <Target Name="TestUtf8Serializer:Clean">
+        <MSBuild Projects="Core\TestUtf8Serializer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestUtf8Serializer:Make">
+        <MSBuild Projects="Core\TestUtf8Serializer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestMapper">
+        <MSBuild Projects="Core\TestMapper.dproj"/>
+    </Target>
+    <Target Name="TestMapper:Clean">
+        <MSBuild Projects="Core\TestMapper.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestMapper:Make">
+        <MSBuild Projects="Core\TestMapper.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="Dext_DITest;Dext_Entity_Tests;Dext_MinimalAPITest;Dext_RouteParamsTest;Dext_ScopedServicesTest;Dext_ServerTest;TestJsonCore;TestOrmInheritance;TestTypeConverters;TestTypeConvertersDb;Dext_ServerTest_Cors;Dext_AppBuilderTest"/>
+        <CallTarget Targets="Dext_DITest;Dext_Entity_Tests;Dext_MinimalAPITest;Dext_RouteParamsTest;Dext_ScopedServicesTest;Dext_ServerTest;TestJsonCore;TestOrmInheritance;TestTypeConverters;TestTypeConvertersDb;Dext_ServerTest_Cors;Dext_AppBuilderTest;TestUUID;TestJsonUUID;TestUtf8Json;TestUtf8Serializer;TestMapper"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Dext_DITest:Clean;Dext_Entity_Tests:Clean;Dext_MinimalAPITest:Clean;Dext_RouteParamsTest:Clean;Dext_ScopedServicesTest:Clean;Dext_ServerTest:Clean;TestJsonCore:Clean;TestOrmInheritance:Clean;TestTypeConverters:Clean;TestTypeConvertersDb:Clean;Dext_ServerTest_Cors:Clean;Dext_AppBuilderTest:Clean"/>
+        <CallTarget Targets="Dext_DITest:Clean;Dext_Entity_Tests:Clean;Dext_MinimalAPITest:Clean;Dext_RouteParamsTest:Clean;Dext_ScopedServicesTest:Clean;Dext_ServerTest:Clean;TestJsonCore:Clean;TestOrmInheritance:Clean;TestTypeConverters:Clean;TestTypeConvertersDb:Clean;Dext_ServerTest_Cors:Clean;Dext_AppBuilderTest:Clean;TestUUID:Clean;TestJsonUUID:Clean;TestUtf8Json:Clean;TestUtf8Serializer:Clean;TestMapper:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Dext_DITest:Make;Dext_Entity_Tests:Make;Dext_MinimalAPITest:Make;Dext_RouteParamsTest:Make;Dext_ScopedServicesTest:Make;Dext_ServerTest:Make;TestJsonCore:Make;TestOrmInheritance:Make;TestTypeConverters:Make;TestTypeConvertersDb:Make;Dext_ServerTest_Cors:Make;Dext_AppBuilderTest:Make"/>
+        <CallTarget Targets="Dext_DITest:Make;Dext_Entity_Tests:Make;Dext_MinimalAPITest:Make;Dext_RouteParamsTest:Make;Dext_ScopedServicesTest:Make;Dext_ServerTest:Make;TestJsonCore:Make;TestOrmInheritance:Make;TestTypeConverters:Make;TestTypeConvertersDb:Make;Dext_ServerTest_Cors:Make;Dext_AppBuilderTest:Make;TestUUID:Make;TestJsonUUID:Make;TestUtf8Json:Make;TestUtf8Serializer:Make;TestMapper:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

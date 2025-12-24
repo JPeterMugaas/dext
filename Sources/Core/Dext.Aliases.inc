@@ -1,3 +1,7 @@
+  // Dext.Mapper
+  TMapper = Dext.Mapper.TMapper;
+  TMemberMapping = Dext.Mapper.TMemberMapping;
+
 // Auto-generated Aliases
 
   // Dext.Collections

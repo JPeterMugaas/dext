@@ -1,4 +1,4 @@
-program TestUUID;
+﻿program TestUUID;
 
 {$APPTYPE CONSOLE}
 
